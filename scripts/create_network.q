@@ -74,6 +74,10 @@
 
   network: delete from ej[`zip;ppl1;ppl2] where id1>=id2;
   show "created network skeleton - ", string count network;
+
+  network: update address_score:compare_addresses'[address1;address2], name_score: calculate_name_score'[name1;name2;name_count1;name_count2] from network;
+  network: update score: address_score+name_score from network;
+  show "strength (score) of relationship calculated";
   network
   };
 
