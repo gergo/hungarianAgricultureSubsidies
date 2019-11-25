@@ -2,7 +2,9 @@
 \p 8848
 
 .agrar.load_csvs:{[]
-  .agrar.csv_dir: (system "pwd"),"/../csv/";
+  .agrar.root: system "pwd";
+  .agrar.input: .agrar.root,"/../input/csv/";
+  .agrar.input: .agrar.root,"/../outout/";
   };
 
 .agrar.init:{[]
