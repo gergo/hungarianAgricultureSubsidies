@@ -38,10 +38,6 @@
 
 .agrar.load_csvs:{[]
   show "loading raw CSVs";
-  .agrar.root: raze system "pwd";
-  .agrar.input: .agrar.root,"/../input/csv/";
-  .agrar.output: .agrar.root,"/../outout/";
-
   files: system "ls ",.agrar.input, "utf8_*csv";
   raw_data: raze .agrar.process_file each files;
   show "raw files processed";
@@ -59,8 +55,21 @@
   raw
   };
 
+///
+// Raw data is too large so we group subsidies together
+.agrar.create_compact:{[raw]
+  compact: select sum amount,wins: count i by name,zip,city,address from raw;
+  compact: compact lj select name_count: count i by name from compact;
+  compact
+  }
+
 .agrar.init:{[]
+  .agrar.root: raze system "pwd";
+  .agrar.input: .agrar.root,"/../input/csv/";
+  .agrar.output: .agrar.root,"/../outout/";
+
   .agrar.raw: .agrar.load_csvs[];
+  .agrar.compact: .agrar.create_compact[.agrar.raw];
   };
 
 if[`CREATE_NETWORK=`$.z.x[0];
