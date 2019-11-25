@@ -5,7 +5,7 @@ TO_ENCODING="UTF-8"
 
 CONVERT=" iconv -f $FROM_ENCODING -t $TO_ENCODING"
 
-for file in *.csv; do
+for file in ../input/csv/*.csv; do
     $CONVERT "$file" > "utf8_${file}"
 done
 exit 0
