@@ -63,6 +63,20 @@
   compact
   }
 
+///
+// create simple network by joining entries with the same zip code
+.agrar.create_network:{[compact]
+  ppl1: update id: i from compact;
+  ppl1: () xkey delete zip1 from update zip: zip1 from xcol[raze {`$raze string x,"1"} each cols ppl1; ppl1];
+
+  ppl2: update id: i from compact;
+  ppl2: () xkey delete zip2 from update zip: zip2 from xcol[raze {`$raze string x,"2"} each cols ppl2; ppl2];
+
+  network: delete from ej[`zip;ppl1;ppl2] where id1>=id2;
+  show "created network skeleton - ", string count network;
+  network
+  };
+
 .agrar.init:{[]
   .agrar.root: raze system "pwd";
   .agrar.input: .agrar.root,"/../input/csv/";
@@ -70,6 +84,7 @@
 
   .agrar.raw: .agrar.load_csvs[];
   .agrar.compact: .agrar.create_compact[.agrar.raw];
+  .agrar.network: .agrar.create_network[.agrar.compact];
   };
 
 if[`CREATE_NETWORK=`$.z.x[0];
