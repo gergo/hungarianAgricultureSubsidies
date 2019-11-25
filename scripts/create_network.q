@@ -10,28 +10,6 @@
   t
   };
 
-.agrar.load_csvs:{[]
-  show "loading raw CSVs";
-  .agrar.root: raze system "pwd";
-  .agrar.input: .agrar.root,"/../input/csv/";
-  .agrar.output: .agrar.root,"/../outout/";
-
-  files: system "ls ",.agrar.input, "utf8_*csv";
-  raw_data: raze .agrar.process_file each files;
-  show "raw files processed";
-
-  data: update name_parts:{count " " vs string x}'[name] from raw_data;
-  data: delete reason, program from delete from data where name_parts>5;
-  data: delete from data where name=`;
-  delete_list: upper ("*BT*";"*KFT*";"*Alapítvány*";"*Egyesület*";"*ZRT*";"*VÁLLALAT*";"*Önkormányzat*";"*Község*";"*Társulat*";"*Szövetkezet*";"*Asztaltársaság*";"*Vadásztársaság*";"*Intézmény*";"*Társulás*";"*Közösség*";"*Központ*";"*Társaság*";"*szolgálat*";"*Plébánia*";"*Szervezet*";"*Szövetség*";"*Sportklub*";"*Igazgatóság*";"*Intézet*";"*Klub*";"*Baráti köre*");
-  data1: delete from data where amount < 1000000;
-  data1: delete from data1 where any upper[name] like/: delete_list;
-  show "firms and small amounts removed";
-
-  .agrar.raw: update address: .agrar.normalize_address'[address] from data1;
-  show ".agrar.raw variable crated - ", string count .agrar.raw;
-  };
-
 .agrar.remove_last_dot:{[addr]
   last_char: last addr;
   $["."=last_char;
@@ -57,8 +35,98 @@
   `$ upper a3
   };
 
+
+.agrar.load_csvs:{[]
+  show "loading raw CSVs";
+  files: system "ls ",.agrar.input, "utf8_*csv";
+  raw_data: raze .agrar.process_file each files;
+  show "raw files processed";
+
+  data: update name_parts:{count " " vs string x}'[name] from raw_data;
+  data: delete reason, program from delete from data where name_parts>5;
+  data: delete from data where name=`;
+  delete_list: upper ("*BT*";"*KFT*";"*Alapítvány*";"*Egyesület*";"*ZRT*";"*VÁLLALAT*";"*Önkormányzat*";"*Község*";"*Társulat*";"*Szövetkezet*";"*Asztaltársaság*";"*Vadásztársaság*";"*Intézmény*";"*Társulás*";"*Közösség*";"*Központ*";"*Társaság*";"*szolgálat*";"*Plébánia*";"*Szervezet*";"*Szövetség*";"*Sportklub*";"*Igazgatóság*";"*Intézet*";"*Klub*";"*Baráti köre*");
+  data1: delete from data where amount < 1000000;
+  data1: delete from data1 where any upper[name] like/: delete_list;
+  show "firms and small amounts removed";
+
+  raw: update address: .agrar.normalize_address'[address] from data1;
+  show ".agrar.raw variable crated - ", string count raw;
+  raw
+  };
+
+///
+// Raw data is too large so we group subsidies together
+.agrar.create_compact:{[raw]
+  compact: select sum amount,wins: count i by name,zip,city,address from raw;
+  compact: compact lj select name_count: count i by name from compact;
+  show "collapsed raw data created - ", string count compact;
+  compact
+  }
+
+///
+// create simple network by joining entries with the same zip code
+.agrar.create_network:{[compact]
+  ppl1: update id: i from compact;
+  ppl1: () xkey delete zip1 from update zip: zip1 from xcol[raze {`$raze string x,"1"} each cols ppl1; ppl1];
+
+  ppl2: update id: i from compact;
+  ppl2: () xkey delete zip2 from update zip: zip2 from xcol[raze {`$raze string x,"2"} each cols ppl2; ppl2];
+
+  network: delete from ej[`zip;ppl1;ppl2] where id1>=id2;
+  show "created network skeleton - ", string count network;
+
+  network: update address_score:.agrar.compare_addresses'[address1;address2] from network;
+  network: update name_score:.agrar.calculate_name_score'[name1;name2;name_count1;name_count2] from network;
+  network: update score: address_score+name_score from network;
+  show "strength (score) of relationship calculated";
+  network
+  };
+
+.agrar.compare_addresses:{[a1;a2]
+  if[a1=a2;:10];
+  a1: " " vs string a1;
+  a2: " " vs string a2;
+  if[1<count a1; a1: -1 _  a1];
+  if[1<count a2; a2: -1 _  a2];
+  if[(`$ raze a1)=(`$ raze a2);:3];
+  :0;
+  };
+
+.agrar.compare_names:{[n1;n2]
+  if[n1=n2;:10];
+  n1: string n1;
+  n2: string n2;
+  min_count:min(count n1;count n2);
+  if[(`$ min_count # n1)=(`$ min_count # n2);:9];
+  np1: " " vs n1;
+  np2: " " vs n2;
+  if[(`$np1[0])=`$np2[0];:5];
+  score: count (`$ np1) inter `$ np2;
+  score
+  };
+
+.agrar.calculate_name_score:{[n1;n2;nc1;nc2]
+  .agrar.compare_names[n1;n2] * 2 / ((log nc1) + log nc2)
+  };
+
+.agrar.save_csv:{[name;data]
+  (hsym `$.agrar.output,name,".csv") 0: "," 0: data;
+  };
+
 .agrar.init:{[]
-  .agrar.load_csvs[];
+  .agrar.root: raze system "pwd";
+  .agrar.input: .agrar.root,"/../input/csv/";
+  .agrar.output: .agrar.root,"/../output/";
+
+  .agrar.raw: .agrar.load_csvs[];
+  .agrar.compact: .agrar.create_compact[.agrar.raw];
+  .agrar.network: .agrar.create_network[.agrar.compact];
+
+  show "saving csvs";
+  .agrar.save_csv["compact";.agrar.compact];
+  .agrar.save_csv["network";select id1,id2,score from .agrar.network];
+  .agrar.save_csv["network_non_zero.csv";select id1,id2,score from .agrar.network where score<>0];
   };
 
 if[`CREATE_NETWORK=`$.z.x[0];
