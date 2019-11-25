@@ -60,6 +60,7 @@
 .agrar.create_compact:{[raw]
   compact: select sum amount,wins: count i by name,zip,city,address from raw;
   compact: compact lj select name_count: count i by name from compact;
+  show "collapsed raw data created - ", string count compact;
   compact
   }
 
@@ -75,7 +76,8 @@
   network: delete from ej[`zip;ppl1;ppl2] where id1>=id2;
   show "created network skeleton - ", string count network;
 
-  network: update address_score:compare_addresses'[address1;address2], name_score: calculate_name_score'[name1;name2;name_count1;name_count2] from network;
+  network: update address_score:.agrar.compare_addresses'[address1;address2] from network;
+  network: update name_score:.agrar.calculate_name_score'[name1;name2;name_count1;name_count2] from network;
   network: update score: address_score+name_score from network;
   show "strength (score) of relationship calculated";
   network
@@ -108,14 +110,23 @@
   .agrar.compare_names[n1;n2] * 2 / ((log nc1) + log nc2)
   };
 
+.agrar.save_csv:{[name;data]
+  (hsym `$.agrar.output,name,".csv") 0: "," 0: data;
+  };
+
 .agrar.init:{[]
   .agrar.root: raze system "pwd";
   .agrar.input: .agrar.root,"/../input/csv/";
-  .agrar.output: .agrar.root,"/../outout/";
+  .agrar.output: .agrar.root,"/../output/";
 
   .agrar.raw: .agrar.load_csvs[];
   .agrar.compact: .agrar.create_compact[.agrar.raw];
   .agrar.network: .agrar.create_network[.agrar.compact];
+
+  show "saving csvs";
+  .agrar.save_csv["compact";.agrar.compact];
+  .agrar.save_csv["network";select id1,id2,score from .agrar.network];
+  .agrar.save_csv["network_non_zero.csv";select id1,id2,score from .agrar.network where score<>0];
   };
 
 if[`CREATE_NETWORK=`$.z.x[0];
