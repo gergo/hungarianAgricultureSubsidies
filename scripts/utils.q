@@ -54,7 +54,11 @@
 
   raw_data: update name_parts:{count " " vs string x}'[name] from raw_data;
   raw_data: update is_firm:1b from raw_data where name_parts>5;
-  firm_keywords: upper ("*BT*";"*KFT*";"*Alapítvány*";"*Egyesület*";"*ZRT*";"*VÁLLALAT*";"*Önkormányzat*";"*Község*";"*Társulat*";"*Szövetkezet*";"*Asztaltársaság*";"*Vadásztársaság*";"*Intézmény*";"*Társulás*";"*Közösség*";"*Központ*";"*Társaság*";"*szolgálat*";"*Plébánia*";"*Szervezet*";"*Szövetség*";"*Sportklub*";"*Igazgatóság*";"*Intézet*";"*Klub*";"*Baráti köre*");
+  firm_keywords: upper ("*BT*";"*KFT*";"*Alapítvány*";"*Egyesület*";"*ZRT*";"*VÁLLALAT*";
+      "*Önkormányzat*";"*Község*";"*Társulat*";"*Szövetkezet*";"*Asztaltársaság*";"*Vadásztársaság*";
+      "*Intézmény*";"*Társulás*";"*Közösség*";"*Központ*";"*Társaság*";"*szolgálat*";"*Plébánia*";
+      "*Szervezet*";"*Szövetség*";"*Sportklub*";"*Igazgatóság*";"*Intézet*";"*Klub*";
+      "*Baráti köre*";"*llamkincst*";"*Egyetem*";"*hivatal*";"*Zöldség-Gyümölcs*";"*Kfc*";"*Tsz*";"*birtok*");
   raw_data: update is_firm:1b from raw_data where any upper[name] like/: firm_keywords;
   raw_data
   };
