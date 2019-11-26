@@ -33,10 +33,6 @@ system "l scores.q";
   };
 
 .agrar.init:{[]
-  .agrar.root: raze system "pwd";
-  .agrar.input: .agrar.root,"/../input/csv/";
-  .agrar.output: .agrar.root,"/../output/";
-
   .agrar.raw: .agrar.load_csvs[];
   .agrar.compact: .agrar.create_compact[.agrar.raw];
   .agrar.network: .agrar.create_network[.agrar.compact];

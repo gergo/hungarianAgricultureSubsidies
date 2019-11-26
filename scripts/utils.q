@@ -1,3 +1,7 @@
+.agrar.root: raze system "pwd";
+.agrar.input: .agrar.root,"/../input/csv/";
+.agrar.output: .agrar.root,"/../output/";
+
 ///////////////////
 // Data cleaning
 ///////////////////
