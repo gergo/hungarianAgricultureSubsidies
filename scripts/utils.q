@@ -18,7 +18,7 @@
 
 .agrar.remove_street:{[addr]
   no_utca: ssr[addr;"[Uu]tca";""];
-  no_ut: ssr[no_utca;"[Úú]t";""];
+  no_ut: ssr[no_utca;"\303\272t";""];
   no_ut
   };
 
@@ -50,21 +50,29 @@
   show "loading raw CSVs";
   files: system "ls ",.agrar.input, "utf8_*csv";
   raw_data: raze .agrar.process_file each files;
-  show "raw files processed";
+  show "raw files loaded";
+
+  raw_data: update name_parts:{count " " vs string x}'[name] from raw_data;
+  raw_data: update is_firm:1b from raw_data where name_parts>5;
+  firm_keywords: upper ("*BT*";"*KFT*";"*Alapítvány*";"*Egyesület*";"*ZRT*";"*VÁLLALAT*";"*Önkormányzat*";"*Község*";"*Társulat*";"*Szövetkezet*";"*Asztaltársaság*";"*Vadásztársaság*";"*Intézmény*";"*Társulás*";"*Közösség*";"*Központ*";"*Társaság*";"*szolgálat*";"*Plébánia*";"*Szervezet*";"*Szövetség*";"*Sportklub*";"*Igazgatóság*";"*Intézet*";"*Klub*";"*Baráti köre*");
+  raw_data: update is_firm:1b from raw_data where any upper[name] like/: firm_keywords;
   raw_data
   };
 
 .agrar.load_individuals:{[]
   raw_data: .agrar.load_csvs[];
-  data: update name_parts:{count " " vs string x}'[name] from raw_data;
-  data: delete reason, program from delete from data where name_parts>5;
+  raw_data: select from raw_data where not is_firm;
+  cutoff_for_win: 800000;
+  data: delete from raw_data where abs[amount] < cutoff_for_win;
+  data: delete reason, program from data;
   data: delete from data where name=`;
-  delete_list: upper ("*BT*";"*KFT*";"*Alapítvány*";"*Egyesület*";"*ZRT*";"*VÁLLALAT*";"*Önkormányzat*";"*Község*";"*Társulat*";"*Szövetkezet*";"*Asztaltársaság*";"*Vadásztársaság*";"*Intézmény*";"*Társulás*";"*Közösség*";"*Központ*";"*Társaság*";"*szolgálat*";"*Plébánia*";"*Szervezet*";"*Szövetség*";"*Sportklub*";"*Igazgatóság*";"*Intézet*";"*Klub*";"*Baráti köre*");
-  data1: delete from data where amount < 1000000;
-  data1: delete from data1 where any upper[name] like/: delete_list;
   show "firms and small amounts removed";
 
-  raw: update address: .agrar.normalize_address'[address] from data1;
+  raw: update address: .agrar.normalize_address'[address] from data;
   show ".agrar.raw variable crated - ", string count raw;
   raw
   };
+
+.agrar.load_firms:{[]
+  select from .agrar.load_csvs[] where is_firm
+  }
