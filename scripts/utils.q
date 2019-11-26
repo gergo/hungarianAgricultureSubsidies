@@ -2,6 +2,8 @@
 .agrar.input: .agrar.root,"/../input/csv/";
 .agrar.output: .agrar.root,"/../output/";
 
+.agrar.raw_loaded:0b;
+
 ///////////////////
 // Data cleaning
 ///////////////////
@@ -47,6 +49,7 @@
   };
 
 .agrar.load_csvs:{[]
+  if[.agrar.raw_loaded;:.agrar.raw];
   show "loading raw CSVs";
   files: system "ls ",.agrar.input, "utf8_*csv";
   raw_data: raze .agrar.process_file each files;
@@ -60,10 +63,13 @@
       "*Szervezet*";"*Szövetség*";"*Sportklub*";"*Igazgatóság*";"*Intézet*";"*Klub*";
       "*Baráti köre*";"*llamkincst*";"*Egyetem*";"*hivatal*";"*Zöldség-Gyümölcs*";"*Kfc*";"*Tsz*";"*birtok*");
   raw_data: update is_firm:1b from raw_data where any upper[name] like/: firm_keywords;
-  raw_data
+  .agrar.raw: raw_data;
+  .agrar.raw_loaded: 1b;
+  .agrar.raw
   };
 
 .agrar.load_individuals:{[]
+  show "Loading individual wins";
   raw_data: .agrar.load_csvs[];
   raw_data: select from raw_data where not is_firm;
   cutoff_for_win: 800000;
@@ -73,10 +79,13 @@
   show "firms and small amounts removed";
 
   raw: update address: .agrar.normalize_address'[address] from data;
-  show ".agrar.raw variable crated - ", string count raw;
+  show "number of individual wins: ", string count raw;
   raw
   };
 
 .agrar.load_firms:{[]
-  select from .agrar.load_csvs[] where is_firm
+  show "Loading firms wins";
+  firms: select from .agrar.load_csvs[] where is_firm;
+  show "number of firm wins: ", string count firms;
+  firms
   }
