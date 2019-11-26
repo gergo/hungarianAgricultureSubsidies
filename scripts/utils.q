@@ -51,7 +51,11 @@
   files: system "ls ",.agrar.input, "utf8_*csv";
   raw_data: raze .agrar.process_file each files;
   show "raw files processed";
+  raw_data
+  };
 
+.agrar.load_individuals:{[]
+  raw_data: .agrar.load_csvs[];
   data: update name_parts:{count " " vs string x}'[name] from raw_data;
   data: delete reason, program from delete from data where name_parts>5;
   data: delete from data where name=`;

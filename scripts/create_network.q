@@ -32,7 +32,7 @@ system "l scores.q";
   };
 
 .agrar.init:{[]
-  .agrar.raw: .agrar.load_csvs[];
+  .agrar.raw: .agrar.load_individuals[];
   .agrar.compact: .agrar.create_compact[.agrar.raw];
   .agrar.network: .agrar.create_network[.agrar.compact];
 
