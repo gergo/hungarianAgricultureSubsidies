@@ -1,3 +1,6 @@
+///////////////////
+// Data cleaning
+///////////////////
 .agrar.remove_last_dot:{[addr]
   last_char: last addr;
   $["."=last_char;
@@ -23,6 +26,9 @@
   `$ upper a3
   };
 
+///////////////////
+// CSV utils
+///////////////////
 .agrar.save_csv:{[name;data]
   (hsym `$.agrar.output,name,".csv") 0: "," 0: data;
   };
@@ -34,4 +40,23 @@
   t: `name`zip`city`address`reason`program`source`amount xcol t;
   t: update year: yr from t;
   t
+  };
+
+.agrar.load_csvs:{[]
+  show "loading raw CSVs";
+  files: system "ls ",.agrar.input, "utf8_*csv";
+  raw_data: raze .agrar.process_file each files;
+  show "raw files processed";
+
+  data: update name_parts:{count " " vs string x}'[name] from raw_data;
+  data: delete reason, program from delete from data where name_parts>5;
+  data: delete from data where name=`;
+  delete_list: upper ("*BT*";"*KFT*";"*Alapítvány*";"*Egyesület*";"*ZRT*";"*VÁLLALAT*";"*Önkormányzat*";"*Község*";"*Társulat*";"*Szövetkezet*";"*Asztaltársaság*";"*Vadásztársaság*";"*Intézmény*";"*Társulás*";"*Közösség*";"*Központ*";"*Társaság*";"*szolgálat*";"*Plébánia*";"*Szervezet*";"*Szövetség*";"*Sportklub*";"*Igazgatóság*";"*Intézet*";"*Klub*";"*Baráti köre*");
+  data1: delete from data where amount < 1000000;
+  data1: delete from data1 where any upper[name] like/: delete_list;
+  show "firms and small amounts removed";
+
+  raw: update address: .agrar.normalize_address'[address] from data1;
+  show ".agrar.raw variable crated - ", string count raw;
+  raw
   };
