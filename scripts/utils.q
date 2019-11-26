@@ -22,3 +22,16 @@
   a3: .agrar.remove_spaces[a2];
   `$ upper a3
   };
+
+.agrar.save_csv:{[name;data]
+  (hsym `$.agrar.output,name,".csv") 0: "," 0: data;
+  };
+
+.agrar.process_file:{[f]
+  yr: `$ ssr[ssr[f;.agrar.input,"utf8_";""];".csv";""];
+  show "  processing raw data for ", string yr;
+  t: ("SISSSSSI";enlist";")0:`$f;
+  t: `name`zip`city`address`reason`program`source`amount xcol t;
+  t: update year: yr from t;
+  t
+  };
