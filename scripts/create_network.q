@@ -1,5 +1,4 @@
 \c 25 180
-\p 8848
 
 system "l utils.q";
 system "l scores.q";
