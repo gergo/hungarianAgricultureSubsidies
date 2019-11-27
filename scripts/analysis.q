@@ -16,6 +16,11 @@ system "l scores.q";
   big_wins: `amount xdesc select count i, sum amount by name, address from felcsut;
   };
 
+.agrar.analyze.big_wins:{
+  ppl_wins: `avg_amt xdesc update avg_amt: amount%x from select sum amount, count i by city,zip from .agrar.ppl;
+  firm_wins: `avg_amt xdesc update avg_amt: amount%x from select sum amount, count i by city,zip from .agrar.firms;
+  };
+
 .agrar.analyze.init:{[]
   .agrar.raw: .agrar.load_csvs[];
   .agrar.firms: .agrar.load_firms[];
