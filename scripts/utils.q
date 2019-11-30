@@ -1,6 +1,8 @@
 .agrar.root: raze system "pwd";
 .agrar.input: .agrar.root,"/../input/csv/";
 .agrar.output: .agrar.root,"/../output/";
+.agrar.names_dl: .agrar.root,"/../input/names/";
+.agrar.names_url: "http://www.nytud.mta.hu/oszt/nyelvmuvelo/utonevek/";
 
 .agrar.raw_loaded:0b;
 
@@ -40,7 +42,7 @@
   };
 
 .agrar.process_file:{[f]
-  yr: `$ ssr[ssr[f;.agrar.input,"utf8_";""];".csv";""];
+  yr: `$ ssr[;".csv";""] ssr[f;.agrar.input,"utf8_";""];
   show "  processing raw data for ", string yr;
   t: ("SISSSSSI";enlist";")0:`$f;
   t: `name`zip`city`address`reason`program`source`amount xcol t;
@@ -90,3 +92,13 @@
   show "number of firm wins: ", string count firms;
   firms
   }
+
+.agrar.download_names:{[name]
+  data: @[system;
+    "curl -f ",.agrar.names_url,",name;
+    {[nm;error]
+      show error;
+      :system "cat ",.agrar.names_dl,nm,".txt";
+      }[name;]];
+  `$ 1 _ data
+  };
