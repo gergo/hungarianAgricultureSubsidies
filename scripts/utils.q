@@ -95,10 +95,11 @@
 
 .agrar.download_names:{[name]
   data: @[system;
-    "curl -f ",.agrar.names_url,",name;
+    "curl -f ",.agrar.names_url,name;
     {[nm;error]
       show error;
       :system "cat ",.agrar.names_dl,nm,".txt";
-      }[name;]];
+      }[name;]
+    ];
   `$ 1 _ data
   };
