@@ -3,12 +3,15 @@ system "l utils.q";
 .agrar.given_names: raze .agrar.download_names each ("osszesffi";"osszesnoi");
 
 .agrar.compare_addresses:{[a1;a2]
+  // if addresses match -> 10 points
   if[a1=a2;:10];
+
+  // if in same street -> 1 point
   a1: " " vs string a1;
   a2: " " vs string a2;
   if[1<count a1; a1: -1 _  a1];
   if[1<count a2; a2: -1 _  a2];
-  if[(`$ raze a1)=(`$ raze a2);:3];
+  if[(`$ raze a1)=`$ raze a2;:1];
   :0;
   };
 
