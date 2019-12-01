@@ -21,9 +21,7 @@
   };
 
 .agrar.remove_street:{[addr]
-  no_utca: ssr[addr;"[Uu]tca";""];
-  no_ut: ssr[no_utca;"\303\272t";""];
-  no_ut
+  ssr[;"Utca";"utca"] ssr[;"\303\272t";"utca"] addr
   };
 
 .agrar.normalize_address:{[address]
