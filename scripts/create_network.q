@@ -38,9 +38,9 @@ system "l scores.q";
   show "saving csvs";
   .agrar.save_csv["compact";.agrar.compact];
   .agrar.save_csv["network";select id1,id2,score from .agrar.network];
-  .agrar.save_csv["network_non_zero.csv";select id1,id2,score from .agrar.network where score<>0];
+  .agrar.save_csv["network_non_zero";update id1,id2,score from .agrar.network where score<>0];
   .agrar.zero_ones: update zero_one:{$[x<3;:0;:1]}'[score] from select id1,id2,score from .agrar.network where score<>0;
-  .agrar.save_csv["network_zero_one.csv";.agrar.zero_ones];
+  .agrar.save_csv["network_zero_one";.agrar.zero_ones];
   };
 
 if[`CREATE_NETWORK=`$.z.x[0];
