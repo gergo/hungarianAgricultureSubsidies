@@ -95,7 +95,7 @@
 
 .agrar.download_names:{[name]
   data: @[system;
-    "curl -f ",.agrar.names_url,name;
+    "curl -f ",.agrar.names_url,name," | iconv -f \"ISO-8859-2//IGNORE\" -t \"UTF-8\"";
     {[nm;error]
       show error;
       :system "cat ",.agrar.names_dl,nm,".txt";
