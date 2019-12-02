@@ -1,6 +1,8 @@
 .agrar.root: raze system "pwd";
 .agrar.input: .agrar.root,"/../input/csv/";
 .agrar.output: .agrar.root,"/../output/";
+.agrar.names_dl: .agrar.root,"/../input/names/";
+.agrar.names_url: "http://www.nytud.mta.hu/oszt/nyelvmuvelo/utonevek/";
 
 .agrar.raw_loaded:0b;
 
@@ -19,9 +21,7 @@
   };
 
 .agrar.remove_street:{[addr]
-  no_utca: ssr[addr;"[Uu]tca";""];
-  no_ut: ssr[no_utca;"\303\272t";""];
-  no_ut
+  ssr[;"Utca";"utca"] ssr[;"\303\272t";"utca"] addr
   };
 
 .agrar.normalize_address:{[address]
@@ -40,7 +40,7 @@
   };
 
 .agrar.process_file:{[f]
-  yr: `$ ssr[ssr[f;.agrar.input,"utf8_";""];".csv";""];
+  yr: `$ ssr[;".csv";""] ssr[f;.agrar.input,"utf8_";""];
   show "  processing raw data for ", string yr;
   t: ("SISSSSSI";enlist";")0:`$f;
   t: `name`zip`city`address`reason`program`source`amount xcol t;
@@ -57,11 +57,12 @@
 
   raw_data: update name_parts:{count " " vs string x}'[name] from raw_data;
   raw_data: update is_firm:1b from raw_data where name_parts>5;
-  firm_keywords: upper ("*BT*";"*KFT*";"*Alapítvány*";"*Egyesület*";"*ZRT*";"*VÁLLALAT*";
+  firm_keywords: upper ("*BT*";"*KFT*";"*Alapítvány*";"*Egyesület*";"*ZRT*";"*VÁLLALAT*";"*Iroda*";
       "*Önkormányzat*";"*Község*";"*Társulat*";"*Szövetkezet*";"*Asztaltársaság*";"*Vadásztársaság*";
       "*Intézmény*";"*Társulás*";"*Közösség*";"*Központ*";"*Társaság*";"*szolgálat*";"*Plébánia*";
-      "*Szervezet*";"*Szövetség*";"*Sportklub*";"*Igazgatóság*";"*Intézet*";"*Klub*";
-      "*Baráti köre*";"*llamkincst*";"*Egyetem*";"*hivatal*";"*Zöldség-Gyümölcs*";"*Kfc*";"*Tsz*";"*birtok*");
+      "*Szervezet*";"*Szövetség*";"*Sportklub*";"*Igazgatóság*";"*Intézet*";"*Klub*";"*Minisztérium*";
+      "*Baráti köre*";"*llamkincst*";"*Egyetem*";"*hivatal*";"*Zöldség-Gyümölcs*";"*Kfc*";"*Tsz*";
+      "*birtok*";"*Pincészet*");
   raw_data: update is_firm:1b from raw_data where any upper[name] like/: firm_keywords;
   .agrar.raw: raw_data;
   .agrar.raw_loaded: 1b;
@@ -89,3 +90,14 @@
   show "number of firm wins: ", string count firms;
   firms
   }
+
+.agrar.download_names:{[name]
+  data: @[system;
+    "curl -f ",.agrar.names_url,name," | iconv -f \"ISO-8859-2//IGNORE\" -t \"UTF-8\"";
+    {[nm;error]
+      show error;
+      :system "cat ",.agrar.names_dl,nm,".txt";
+      }[name;]
+    ];
+  `$ 1 _ data
+  };
