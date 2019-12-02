@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
 
-QHOME=${QHOME:-~/q/m64/}
+QHOME=${QHOME:-~/q}
 
-rlwrap ${QHOME}/q analysis.q "RUN"
+rlwrap ${QHOME}/m64/q analysis.q "RUN"
