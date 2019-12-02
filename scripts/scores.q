@@ -1,6 +1,7 @@
 system "l utils.q";
 
 .agrar.given_names: raze .agrar.download_names each ("osszesffi";"osszesnoi");
+.agrar.remove_names: `$("Dr.";"dr.";"Dr";"dr");
 
 .agrar.compare_addresses:{[a1;a2]
   // if addresses match -> 10 points
@@ -26,8 +27,9 @@ system "l utils.q";
   if[(`$ min_count # n1)=(`$ min_count # n2);:9];
 
   // same family name -> 5 points
-  np1: `$ " " vs n1;
-  np2: `$ " " vs n2;
+  // can cause false positives
+  np1: (`$ " " vs n1) except .agrar.remove_names;
+  np2: (`$ " " vs n2) except .agrar.remove_names;
   if[(np1[0])=np2[0];:5];
 
   // remove given names -> count matching words (0 for no match)
