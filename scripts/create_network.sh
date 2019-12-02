@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
 
-Q_HOME=${Q_HOME:-~/q/m64/}
+QHOME=${QHOME:-~/q/m64}
 
-rlwrap ${Q_HOME}/q create_network.q "CREATE_NETWORK"
+rlwrap ${QHOME}/m64/q create_network.q "CREATE_NETWORK"
