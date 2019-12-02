@@ -13,7 +13,8 @@ system "l scores.q";
 
 ///
 // create simple network by joining entries with the same zip code
-.agrar.create_network:{[compact]
+// This is a good heuristic to reduce network size to a manageable size
+.agrar.create_network_zip:{[compact]
   ppl1: update id: i from compact;
   ppl1: () xkey delete zip1 from update zip: zip1 from xcol[raze {`$raze string x,"1"} each cols ppl1; ppl1];
 
@@ -30,10 +31,29 @@ system "l scores.q";
   network
   };
 
+///
+// On smaller datasets cross-join is doable
+.agrar.create_network_full:{[compact]
+  ppl1: update id: i from compact;
+  ppl1: () xkey delete zip1 from update zip: zip1 from xcol[raze {`$raze string x,"1"} each cols ppl1; ppl1];
+
+  ppl2: update id: i from compact;
+  ppl2: () xkey delete zip2 from update zip: zip2 from xcol[raze {`$raze string x,"2"} each cols ppl2; ppl2];
+
+  network: delete from (ppl1 cross ppl2) where id1>=id2;
+  show "created network skeleton - ", string count network;
+
+  network: update address_score:.agrar.compare_addresses'[city_addr1;city_addr2] from network;
+  network: update name_score:.agrar.calculate_name_score'[name1;name2;name_count1;name_count2] from network;
+  network: update score: address_score+name_score from network;
+  show "strength (score) of relationship calculated";
+  network
+  };
+
 .agrar.init:{[]
   .agrar.raw: .agrar.load_individuals[];
   .agrar.compact: .agrar.create_compact[.agrar.raw];
-  .agrar.network: .agrar.create_network[.agrar.compact];
+  .agrar.network: .agrar.create_network_zip[.agrar.compact];
 
   show "saving csvs";
   .agrar.save_csv["compact";.agrar.compact];
