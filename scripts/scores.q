@@ -1,7 +1,7 @@
 system "l utils.q";
 
 .agrar.given_names: raze .agrar.download_names each ("osszesffi";"osszesnoi");
-.agrar.remove_names: `$("Dr.";"dr.";"Dr";"dr");
+.agrar.remove_names: `$("Dr.";"dr.";"Dr";"dr";"néhai";"Néhai");
 
 .agrar.compare_addresses:{[a1;a2]
   // if addresses match -> 10 points
