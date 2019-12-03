@@ -39,6 +39,10 @@ system "l create_network.q";
 
   // Which individuals won the most in agricultural subsidies
   .misc.ppl_wins_max: () xkey `amount xdesc select sum amount,count i by name,city,address from .agrar.ppl;
+
+  // which households contain the most winners (along with the amounts)
+  .misc.single_household: select from (`db xdesc select nm: enlist name, db: count i,sum amount by city,address from
+    select sum amount by name,city,address from .agrar.ppl where address<>`) where db>5;
   };
 
 .agrar.analyze.init:{[]
