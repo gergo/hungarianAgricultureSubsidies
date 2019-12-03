@@ -73,7 +73,7 @@
   show "Loading individual wins";
   raw_data: .agrar.load_csvs[];
   raw_data: select from raw_data where not is_firm;
-  cutoff_for_win: 200000;
+  cutoff_for_win: 750000;
   data: delete from raw_data where abs[amount] < cutoff_for_win;
   data: delete reason, program from data;
   data: delete from data where name=`;
