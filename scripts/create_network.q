@@ -6,7 +6,7 @@ system "l scores.q";
 // Raw data is too large so we group subsidies together
 .agrar.create_compact:{[raw]
   compact: select sum amount,wins: count i by name,zip,city,address from raw;
-  compact: delete from compact where amount<1500000;
+  compact: delete from compact where amount<1000000;
   compact: compact lj select name_count: count i by name from compact;
   .agrar.log "collapsed raw data created - ", string count compact;
   compact
@@ -27,7 +27,7 @@ system "l scores.q";
 
   network: update address_score:.agrar.compare_addresses'[address1;address2] from network;
   .agrar.log "  address scores calculated";
-  .agrar.add_score_to_nw[network]
+  .agrar.add_score_to_nw[network;{2.0 * count x inter y}]
   };
 
 ///
@@ -44,11 +44,11 @@ system "l scores.q";
 
   network: update address_score:.agrar.compare_addresses'[city_addr1;city_addr2] from network;
   .agrar.log "  address scores calculated";
-  .agrar.add_score_to_nw[network]
+  .agrar.add_score_to_nw[network;.agrar.levenshtein_compare]
   };
 
-.agrar.add_score_to_nw:{[network]
-  network: update name_score:.agrar.calculate_name_score'[name1;name2;name_count1;name_count2] from network;
+.agrar.add_score_to_nw:{[network;name_score_fn]
+  network: update name_score:.agrar.calculate_name_score'[name1;name2;name_count1;name_count2;name_score_fn] from network;
   .agrar.log "  name scores calculated";
   network: update score: address_score+name_score from network;
   .agrar.log "strength (score) of relationship calculated";
