@@ -62,7 +62,7 @@
       "*Intézmény*";"*Társulás*";"*Közösség*";"*Központ*";"*Társaság*";"*szolgálat*";"*Plébánia*";
       "*Szervezet*";"*Szövetség*";"*Sportklub*";"*Igazgatóság*";"*Intézet*";"*Klub*";"*Minisztérium*";
       "*Baráti köre*";"*llamkincst*";"*Egyetem*";"*hivatal*";"*Zöldség-Gyümölcs*";"*Kfc*";"*Tsz*";
-      "*birtok*";"*Pincészet*");
+      "*birtok*";"*Pincészet*";"Egyéni cég");
   raw_data: update is_firm:1b from raw_data where any upper[name] like/: firm_keywords;
   .agrar.raw: raw_data;
   .agrar.raw_loaded: 1b;
@@ -73,7 +73,7 @@
   show "Loading individual wins";
   raw_data: .agrar.load_csvs[];
   raw_data: select from raw_data where not is_firm;
-  cutoff_for_win: 800000;
+  cutoff_for_win: 200000;
   data: delete from raw_data where abs[amount] < cutoff_for_win;
   data: delete reason, program from data;
   data: delete from data where name=`;
