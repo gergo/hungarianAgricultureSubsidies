@@ -40,34 +40,34 @@ system "l utils.q";
   };
 
 // Levenshtein distance to calculate distance between words
-.agrar.lev_dist:{[w1;w2]
+.agrar.lev_dist:{[w1;w2;d;l]
   $[w1~w2;0;
+    d=0;l;
     count[w2]~0;count w1;
     count[w1]~0;count w2;
-    [ min (.z.s[-1_w1;w2]+1;
-      .z.s[w1;-1_w2]+1 ;
-      .z.s[-1_w1;-1_w2] + not reverse[w1][0]~reverse[w2][0])]
+    [ min (.z.s[-1_w1;w2;d-1;l]+1;
+      .z.s[w1;-1_w2;d-1;l]+1 ;
+      .z.s[-1_w1;-1_w2;d-1;l] + not reverse[w1][0]~reverse[w2][0])]
     ]
   };
 
 ///
 // modified distance calculation to make it suitable for comparing names
-// .agrar.normalizedLevDist["asdf";"qwer"] -> 0f
-// .agrar.normalizedLevDist["asdf";"asdf"] -> 1f
-// .agrar.normalizedLevDist["foobar";"foofao"] -> 0.666667
+// .agrar.normalized_lev_dist["asdf";"qwer"] -> 0f
+// .agrar.normalized_lev_dist["asdf";"asdf"] -> 1f
+// .agrar.normalized_lev_dist["foobar";"foofao"] -> 0.666667
 .agrar.normalized_lev_dist:{[w1;w2]
-  score: .agrar.lev_dist[w1;w2];
+  depth: 3;
   length: max (count w1; count w2);
-  (length - score) % length
+  score: .agrar.lev_dist[w1;w2;depth;length];
+  max (0; (length - score) % length)
   };
 
-// cross-joins strings on word parts then splits the name parts by 6 characters as lev distance calculation is O(n^2)
+// cross-joins strings on word parts then calculate Levensthein distance
 .agrar.levenshtein_compare:{[n1;n2]
   words: ([] w1: (flip upper n1 cross n2)[0];w2: (flip upper n1 cross n2)[1]);
-  words: ungroup update w1: {`$ 0N 5 # string x}'[w1] from words;
-  words: ungroup update w2: {`$ 0N 5 # string x}'[w2] from words;
   words: update score:.agrar.normalized_lev_dist'[w1;w2] from string words;
-  10.0 * avg exec score from words
+  avg exec score from words
   };
 
 .agrar.calculate_name_score:{[n1;n2;nc1;nc2;final_score_fn]
