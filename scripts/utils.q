@@ -41,7 +41,7 @@
 
 .agrar.process_file:{[f]
   yr: `$ ssr[;".csv";""] ssr[f;.agrar.input,"utf8_";""];
-  show "  processing raw data for ", string yr;
+  .agrar.log "  processing raw data for ", string yr;
   t: ("SISSSSSI";enlist";")0:`$f;
   t: `name`zip`city`address`reason`program`source`amount xcol t;
   t: update year: yr from t;
@@ -50,19 +50,17 @@
 
 .agrar.load_csvs:{[]
   if[.agrar.raw_loaded;:.agrar.raw];
-  show "loading raw CSVs";
+  .agrar.log "loading raw CSVs";
   files: system "ls ",.agrar.input, "utf8_*csv";
   raw_data: raze .agrar.process_file each files;
-  show "raw files loaded";
+  .agrar.log "raw files loaded";
 
   raw_data: update name_parts:{count " " vs string x}'[name] from raw_data;
   raw_data: update is_firm:1b from raw_data where name_parts>5;
-  firm_keywords: upper ("*BT*";"*KFT*";"*Alapítvány*";"*Egyesület*";"*ZRT*";"*VÁLLALAT*";"*Iroda*";
-      "*Önkormányzat*";"*Község*";"*Társulat*";"*Szövetkezet*";"*Asztaltársaság*";"*Vadásztársaság*";
-      "*Intézmény*";"*Társulás*";"*Közösség*";"*Központ*";"*Társaság*";"*szolgálat*";"*Plébánia*";
-      "*Szervezet*";"*Szövetség*";"*Sportklub*";"*Igazgatóság*";"*Intézet*";"*Klub*";"*Minisztérium*";
-      "*Baráti köre*";"*llamkincst*";"*Egyetem*";"*hivatal*";"*Zöldség-Gyümölcs*";"*Kfc*";"*Tsz*";
-      "*birtok*";"*Pincészet*");
+  firm_keywords: {"*",x,"*"} each upper ("BT";"KFT";"Alapítvány";"Egyesület";"ZRT";"VÁLLALAT";"Iroda";"Önkormányzat";
+    "Község";"Társulat";"Szövetkezet";"Asztaltársaság";"Vadásztársaság";"Intézmény";"Társulás";"Közösség";"Központ";
+    "Társaság";"szolgálat";"Plébánia";"Szervezet";"Szövetség";"Sportklub";"Igazgatóság";"Intézet";"Klub";"Minisztérium";
+    "Baráti köre";"llamkincst";"Egyetem";"hivatal";"Zöldség-Gyümölcs";"Kfc";"Tsz";"birtok";"Pincészet";"Egyéni cég");
   raw_data: update is_firm:1b from raw_data where any upper[name] like/: firm_keywords;
   .agrar.raw: raw_data;
   .agrar.raw_loaded: 1b;
@@ -70,24 +68,24 @@
   };
 
 .agrar.load_individuals:{[]
-  show "Loading individual wins";
+  .agrar.log "Loading individual wins";
   raw_data: .agrar.load_csvs[];
   raw_data: select from raw_data where not is_firm;
-  cutoff_for_win: 800000;
+  cutoff_for_win: 500000;
   data: delete from raw_data where abs[amount] < cutoff_for_win;
   data: delete reason, program from data;
   data: delete from data where name=`;
-  show "firms and small amounts removed";
+  .agrar.log "firms and small amounts removed";
 
   raw: update address: .agrar.normalize_address'[address] from data;
-  show "number of individual wins: ", string count raw;
+  .agrar.log "number of individual wins: ", string count raw;
   raw
   };
 
 .agrar.load_firms:{[]
-  show "Loading firms wins";
+  .agrar.log "Loading firms wins";
   firms: select from .agrar.load_csvs[] where is_firm;
-  show "number of firm wins: ", string count firms;
+  .agrar.log "number of firm wins: ", string count firms;
   firms
   }
 
@@ -100,4 +98,8 @@
       }[name;]
     ];
   `$ 1 _ data
+  };
+
+.agrar.log:{[msg]
+  show string[.z.T],": ",msg;
   };
