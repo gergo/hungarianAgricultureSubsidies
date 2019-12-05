@@ -8,7 +8,7 @@ system "l create_network.q";
   .tiborcz.raw: select from .agrar.ppl where upper[name] like "*TIBORCZ*";
   .tiborcz.overview: select count i, sum amount by name,zip,address from .tiborcz.raw;
   .tiborcz.yearly_wins: select sum amount by year from .tiborcz.raw;
-  .tiborcz.avg_wins: `avg_win xdesc update avg_win:amt%db from select amt: sum amount,db: count i by address from .tiborcz.raw;
+  .tiborcz.avg_wins: `avg_win xdesc update avg_win:amt%cnt from select amt: sum amount,cnt: count i by address from .tiborcz.raw;
   .agrar.save_csv["tiborcz_wins";.tiborcz.yearly_wins];
   };
 
@@ -20,9 +20,10 @@ system "l create_network.q";
   .felcsut.compact: update city_addr:{`$ string[x]," ",string[y]}'[city;address] from .felcsut.compact;
   .felcsut.network: .agrar.create_network_full[.felcsut.compact];
 
-  .felcsut.avg_wins: `avg_win xdesc update avg_win:amt%db from select amt: sum amount,db: count i by name,city,address from .felcsut.raw;
+  .felcsut.avg_wins: `avg_win xdesc update avg_win:amt%cnt from select amt: sum amount,cnt: count i by name,city,address from .felcsut.raw;
 
-  .felcsut.non_zero: select name1,city1,address1,name2,city2,address2,score from (update zero_one: {$[x<3;:0;:1]}'[score] from .felcsut.network) where zero_one=1;
+  .felcsut.non_zero: select name1,city1,address1,name2,city2,address2,address_score,name_score,score from
+    (update zero_one: {$[x<3;:0;:1]}'[score] from .felcsut.network) where zero_one=1;
   .agrar.save_csv["felcsut_network"; .felcsut.non_zero];
   .agrar.save_csv["felcsut_avg_wins"; .felcsut.avg_wins];
   };
@@ -39,12 +40,20 @@ system "l create_network.q";
 
   // Which individuals won the most in agricultural subsidies
   .misc.ppl_wins_max: () xkey `amount xdesc select sum amount,count i by name,city,address from .agrar.ppl;
+
+  // which households contain the most winners (along with the amounts)
+  .misc.single_household: select from (`cnt xdesc select nm: enlist name, cnt: count i,sum amount by city,address from
+    select sum amount by name,city,address from .agrar.ppl where address<>`) where cnt>5;
   };
 
 .agrar.analyze.init:{[]
   .agrar.raw: .agrar.load_csvs[];
   .agrar.firms: .agrar.load_firms[];
   .agrar.ppl: .agrar.load_individuals[];
+
+  .agrar.analyze.felcsut[];
+  .agrar.analyze.tiborcz[];
+  .agrar.analyze.big_wins[];
   };
 
 if[`RUN=`$.z.x[0];
