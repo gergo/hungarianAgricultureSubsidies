@@ -32,14 +32,15 @@ system "l utils.q";
   np2: (`$ " " vs n2) except .agrar.remove_names;
   if[(np1[0])=np2[0];:5.0];
 
-  // otherwise use the Levenshtein distance.
+  // otherwise use the function
   // first remove given names
   np1: (1 # np1),(1 _ np1) except .agrar.given_names;
   np2: (1 # np2),(1 _ np2) except .agrar.given_names;
   final_score_fn[np1;np2]
   };
 
-// Levenshtein distance to calculate distance between words
+///
+// Levenshtein-distance to calculate closeness of words
 .agrar.lev_dist:{[w1;w2;d;l]
   $[w1~w2;0;
     d=0;l;
