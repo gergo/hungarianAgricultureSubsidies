@@ -3,10 +3,11 @@
 system "l scores.q";
 
 ///
-// Raw data is too large so we group subsidies together
-.agrar.create_compact:{[raw]
+// Raw data is too large to process on a personal computer so we group subsidies together for individuals
+// We only keep entries where the aggregate subsidies is at least 1 000 000 HUF
+.agrar.create_compact:{[raw;cutoff]
   compact: select sum amount,wins: count i by name,zip,city,address from raw;
-  compact: delete from compact where amount<1000000;
+  compact: delete from compact where amount<cutoff;
   compact: compact lj select name_count: count i by name from compact;
   .agrar.log "collapsed raw data created - ", string count compact;
   compact
@@ -56,8 +57,8 @@ system "l scores.q";
   };
 
 .agrar.init:{[]
-  .agrar.raw: .agrar.load_individuals[];
-  .agrar.compact: .agrar.create_compact[.agrar.raw];
+  .agrar.raw: .agrar.load_individuals[500000];
+  .agrar.compact: .agrar.create_compact[.agrar.raw;1000000];
   .agrar.network: .agrar.create_network_by_zip[.agrar.compact];
 
   .agrar.log "saving csvs";

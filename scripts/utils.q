@@ -67,12 +67,11 @@
   .agrar.raw
   };
 
-.agrar.load_individuals:{[]
+.agrar.load_individuals:{[cutoff]
   .agrar.log "Loading individual wins";
   raw_data: .agrar.load_csvs[];
   raw_data: select from raw_data where not is_firm;
-  cutoff_for_win: 500000;
-  data: delete from raw_data where abs[amount] < cutoff_for_win;
+  data: delete from raw_data where abs[amount] < cutoff;
   data: delete reason, program from data;
   data: delete from data where name=`;
   .agrar.log "firms and small amounts removed";

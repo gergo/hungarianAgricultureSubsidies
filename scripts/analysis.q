@@ -16,13 +16,13 @@ system "l create_network.q";
   // Felcsut and neighboring towns
   .felcsut.raw: select from .agrar.ppl where zip in (8086;8087;2063;2066;2060;2065;2091);
   .felcsut.big_wins: `amount xdesc select count i, sum amount by name, address from .felcsut.raw;
-  .felcsut.compact: .agrar.create_compact[.felcsut.raw];
+  .felcsut.compact: .agrar.create_compact[.felcsut.raw;2500000];
   .felcsut.compact: update city_addr:{`$ string[x]," ",string[y]}'[city;address] from .felcsut.compact;
   .felcsut.network: .agrar.create_network_full[.felcsut.compact];
 
   .felcsut.avg_wins: `avg_win xdesc update avg_win:amt%cnt from select amt: sum amount,cnt: count i by name,city,address from .felcsut.raw;
 
-  .felcsut.non_zero: select name1,city1,address1,name2,city2,address2,address_score,name_score,score from
+  .felcsut.non_zero: select name1,city1,address1,amount1,name2,city2,address2,amount2,address_score,name_score,score from
     (update zero_one: {$[x<3;:0;:1]}'[score] from .felcsut.network) where zero_one=1;
   .agrar.save_csv["felcsut_network"; .felcsut.non_zero];
   .agrar.save_csv["felcsut_avg_wins"; .felcsut.avg_wins];
@@ -42,14 +42,14 @@ system "l create_network.q";
   .misc.ppl_wins_max: () xkey `amount xdesc select sum amount,count i by name,city,address from .agrar.ppl;
 
   // which households contain the most winners (along with the amounts)
-  .misc.single_household: select from (`cnt xdesc select nm: enlist name, cnt: count i,sum amount by city,address from
-    select sum amount by name,city,address from .agrar.ppl where address<>`) where cnt>5;
+  .misc.single_household: select from (`cnt xdesc select nm: enlist name, cnt: count i,sum amount by
+  city,address from select sum amount by name,city,address from .agrar.ppl where address<>`) where cnt>5;
   };
 
 .agrar.analyze.init:{[]
   .agrar.raw: .agrar.load_csvs[];
   .agrar.firms: .agrar.load_firms[];
-  .agrar.ppl: .agrar.load_individuals[];
+  .agrar.ppl: .agrar.load_individuals[0];
 
   .agrar.analyze.felcsut[];
   .agrar.analyze.tiborcz[];
