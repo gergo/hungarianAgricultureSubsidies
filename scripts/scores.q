@@ -1,6 +1,8 @@
 system "l utils.q";
 
-.agrar.given_names: raze .agrar.download_names each ("osszesffi";"osszesnoi");
+.agrar.male_names: .agrar.download_names "osszesffi";
+.agrar.female_names: .agrar.download_names "osszesnoi";
+.agrar.given_names: .agrar.female_names,.agrar.male_names;
 .agrar.remove_names: `$("Dr.";"dr.";"Dr";"dr";"néhai";"Néhai");
 
 .agrar.compare_addresses:{[a1;a2]
