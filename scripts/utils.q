@@ -63,7 +63,8 @@
     "Baráti köre";"llamkincst";"Egyetem";"hivatal";"Zöldség-Gyümölcs";"Kfc";"Tsz";"birtok";"Pincészet";"Egyéni cég";
     "Kkt.";"Baráti Kör"; "Egyesülés";"Gazdakör";"Olvasókör";"Club";"Társegyház";"Szerzetesrend";"Egyház";"Lelkészség";
     "Gazdaság";"Rt.";"Gyülekezet";"Erdőszöv";"Lovas Kör";"Ipartestület";"Nőegylet";"Polgárőrség";"Vadászegylet";
-    "Fióktelepe";"Baromfi";"Hegypásztor Kör";"Sport Egylet";"TÉSZ";"Sport Kör";"Nővérek";"Sportkör";"Egylet");
+    "Fióktelepe";"Baromfi";"Hegypásztor Kör";"és vidéke";"TÉSZ";"Sport Kör";"Nővérek";"Sportkör";"Egylet";"Iskola";
+    "Erdőgazdálkodás";"Faiskola";"Kórház";"Múzeum";"Zarándokház";"Olvsdó kör");
   raw_data: update is_firm:1b from raw_data where any upper[name] like/: firm_keywords;
   .agrar.raw: raw_data;
   .agrar.raw_loaded: 1b;
