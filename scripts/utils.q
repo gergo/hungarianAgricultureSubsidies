@@ -88,7 +88,6 @@
   raw_data: .agrar.load_csvs[];
   raw_data: select from raw_data where not is_firm;
   data: delete from raw_data where abs[amount] < cutoff;
-  data: delete reason, program from data;
   data: delete from data where name=`;
   .agrar.log "firms and small amounts removed";
 

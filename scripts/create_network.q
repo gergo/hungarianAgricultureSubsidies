@@ -57,7 +57,7 @@ system "l scores.q";
   };
 
 .agrar.init:{[]
-  .agrar.raw: .agrar.load_individuals[500000];
+  .agrar.raw: delete reason, program from .agrar.load_individuals[500000];
   .agrar.compact: .agrar.create_compact[.agrar.raw;1000000];
   .agrar.network: .agrar.create_network_by_zip[.agrar.compact];
 
