@@ -17,33 +17,36 @@ system "l create_network.q";
   .felcsut.raw: select from .agrar.ppl where zip in (8086;8087;2063;2066;2060;2065;2091);
   .felcsut.big_wins: `amount xdesc select count i, sum amount by name, address from .felcsut.raw;
   .felcsut.compact: .agrar.create_compact[.felcsut.raw;2500000];
-  .felcsut.compact: update city_addr:{`$ string[x]," ",string[y]}'[city;address] from .felcsut.compact;
+  .felcsut.compact: update settlement_addr:{`$ string[x]," ",string[y]}'[settlement;address] from .felcsut.compact;
   .felcsut.network: .agrar.create_network_full[.felcsut.compact];
 
-  .felcsut.avg_wins: `avg_win xdesc update avg_win:amt%cnt from select amt: sum amount,cnt: count i by name,city,address from .felcsut.raw;
+  .felcsut.avg_wins: `avg_win xdesc update avg_win:amt%cnt from select amt: sum amount,cnt: count i by name,settlement,
+  address from .felcsut.raw;
 
-  .felcsut.non_zero: select name1,city1,address1,amount1,name2,city2,address2,amount2,address_score,name_score,score from
-    (update zero_one: {$[x<3;:0;:1]}'[score] from .felcsut.network) where zero_one=1;
+  .felcsut.non_zero: select name1,settlement1,address1,amount1,name2,settlement2,address2,amount2,address_score,
+  name_score, score from (update zero_one: {$[x<3;:0;:1]}'[score] from .felcsut.network) where zero_one=1;
   .agrar.save_csv["felcsut_network"; .felcsut.non_zero];
   .agrar.save_csv["felcsut_avg_wins"; .felcsut.avg_wins];
   };
 
 .agrar.analyze.big_wins:{[]
   // Are there individuals and firms that share address?
-  .misc.same_addresses: (`zip`city`address xkey .agrar.firms) ij `zip`city`address xkey .agrar.ppl;
+  .misc.same_addresses: (`zip`settlement`address xkey .agrar.firms) ij `zip`settlement`address xkey .agrar.ppl;
 
   // Residents of which town won the largest amount of subsidies - order by average wins
-  .misc.ppl_wins_avg: `avg_amt xdesc update avg_amt: amount%wins from select sum amount, wins: count i by city,zip from .agrar.ppl;
+  .misc.ppl_wins_avg: `avg_amt xdesc update avg_amt: amount%wins from select sum amount, wins: count i by settlement,
+  zip from .agrar.ppl;
 
   // Firms of which town won the most money - order by average amount
-  .misc.firm_wins: `avg_amt xdesc update avg_amt: amount%wins from select sum amount, wins: count i by city,zip from .agrar.firms;
+  .misc.firm_wins: `avg_amt xdesc update avg_amt: amount%wins from select sum amount, wins: count i by settlement,zip
+  from .agrar.firms;
 
   // Which individuals won the most in agricultural subsidies
-  .misc.ppl_wins_max: () xkey `amount xdesc select sum amount,count i by name,city,address from .agrar.ppl;
+  .misc.ppl_wins_max: () xkey `amount xdesc select sum amount,count i by name,settlement,address from .agrar.ppl;
 
   // which households contain the most winners (along with the amounts)
   .misc.single_household: select from (`cnt xdesc select nm: enlist name, cnt: count i,sum amount by
-  city,address from select sum amount by name,city,address from .agrar.ppl where address<>`) where cnt>5;
+  settlement,address from select sum amount by name,settlement,address from .agrar.ppl where address<>`) where cnt>5;
   };
 
 .agrar.analyze.init:{[]

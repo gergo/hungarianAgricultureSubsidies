@@ -43,7 +43,7 @@
   yr: `$ ssr[;".csv";""] ssr[f;.agrar.input,"utf8_";""];
   .agrar.log "  processing raw data for ", string yr;
   t: ("SISSSSSI";enlist";")0:`$f;
-  t: `name`zip`city`address`reason`program`source`amount xcol t;
+  t: `name`zip`settlement`address`reason`program`source`amount xcol t;
   t: update year: yr from t;
   t
   };
