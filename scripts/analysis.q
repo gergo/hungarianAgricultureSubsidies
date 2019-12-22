@@ -49,6 +49,23 @@ system "l create_network.q";
   settlement,address from select sum amount by name,settlement,address from .agrar.ppl where address<>`) where cnt>5;
   };
 
+.agrar.normalize:{[]
+  .agrar.settlements: update settlement_id: i from select distinct zip,settlement from .agrar.ppl;
+  normalized1: delete zip,settlement from .agrar.ppl lj `zip`settlement xkey .agrar.settlements;
+
+  .agrar.winners: update winner_id: i from select distinct name,gender,address,settlement_id from normalized1;
+  normalized2: delete name,gender,address,settlement_id from normalized1 lj `name`gender`address`settlement_id xkey .agrar.winners;
+
+  .agrar.funds: update fund_id: i from select distinct reason,program,source from normalized2;
+  .agrar.wins: delete reason,program,source from normalized2 lj `reason`program`source xkey .agrar.funds;
+
+  .agrar.save_csv["agrar_full_wins"; .agrar.ppl];
+  .agrar.save_csv["agrar_settlements"; .agrar.settlements];
+  .agrar.save_csv["agrar_winners"; .agrar.winners];
+  .agrar.save_csv["agrar_funds"; .agrar.funds];
+  .agrar.save_csv["agrar_wins"; .agrar.wins];
+  };
+
 .agrar.analyze.init:{[]
   .agrar.raw: .agrar.load_csvs[];
   .agrar.firms: .agrar.load_firms[];
