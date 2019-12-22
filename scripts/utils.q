@@ -93,7 +93,7 @@
 
   raw: update gender: .agrar.determine_gender'[name],address: .agrar.normalize_address'[address] from data;
   .agrar.log "number of individual wins: ", string count raw;
-  raw
+  delete is_firm,name_parts from raw
   };
 
 .agrar.load_firms:{[]
