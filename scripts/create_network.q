@@ -3,10 +3,11 @@
 system "l scores.q";
 
 ///
-// Raw data is too large so we group subsidies together
-.agrar.create_compact:{[raw]
-  compact: select sum amount,wins: count i by name,zip,city,address from raw;
-  compact: delete from compact where amount<1000000;
+// Raw data is too large to process on a personal computer so we group subsidies together for individuals
+// We only keep entries where the aggregate subsidies is at least 1 000 000 HUF
+.agrar.create_compact:{[raw;cutoff]
+  compact: select sum amount,wins: count i by name,zip,settlement,address from raw;
+  compact: delete from compact where amount<cutoff;
   compact: compact lj select name_count: count i by name from compact;
   .agrar.log "collapsed raw data created - ", string count compact;
   compact
@@ -42,7 +43,7 @@ system "l scores.q";
   network: delete from (ppl1 cross ppl2) where id1>=id2;
   .agrar.log "created network skeleton - ", string count network;
 
-  network: update address_score:.agrar.compare_addresses'[city_addr1;city_addr2] from network;
+  network: update address_score:.agrar.compare_addresses'[settlement_addr1;settlement_addr2] from network;
   .agrar.log "  address scores calculated";
   .agrar.add_score_to_nw[network;.agrar.levenshtein_compare]
   };
@@ -56,8 +57,8 @@ system "l scores.q";
   };
 
 .agrar.init:{[]
-  .agrar.raw: .agrar.load_individuals[];
-  .agrar.compact: .agrar.create_compact[.agrar.raw];
+  .agrar.raw: delete reason, program from .agrar.load_individuals[500000];
+  .agrar.compact: .agrar.create_compact[.agrar.raw;1000000];
   .agrar.network: .agrar.create_network_by_zip[.agrar.compact];
 
   .agrar.log "saving csvs";

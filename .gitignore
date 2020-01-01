@@ -2,3 +2,4 @@
 input/csv/*
 input/zip/*
 output/*
+scripts/.ipynb_checkpoints
