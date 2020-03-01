@@ -5,11 +5,11 @@
 Shell scripts do the work.
    - Copy the project to your machine
    - Download Q interpreter from [kx.com](https://kx.com/connect-with-us/download/)
-   - ```01_download_data.sh```: Download yearly data from [Hungarian Treasury](https://www.mvh.allamkincstar.gov.hu
-   /kozzeteteli-listak1)
-   - ```02_unzip.sh```: Unzip the files and move them under a directory called ```input/csv```. File names should be
+   - ```01_prepare_agricultural_subsidies_data.sh```
+      - Download yearly data from [Hungarian Treasury](https://www.mvh.allamkincstar.gov.hu/kozzeteteli-listak1),
+      - unzip the files and move them under a directory called ```input/csv```. File names should be
     ```YYYY.csv```
-   - ```03_change_encoding.sh```: Data is in Latin-2 encoding so it has to be converted to UTF-8.
+      - Data is in Latin-2 encoding so it has to be converted to UTF-8.
 
 ## Analysis
    - ```04_create_network.sh```: Raw data is processed to create cleaner, aggregate datasets.
