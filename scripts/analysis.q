@@ -79,3 +79,16 @@ system "l create_network.q";
 if[`RUN=`$.z.x[0];
   .agrar.analyze.init[];
   ];
+
+/
+update amount: amount%1000000 from select sum amount by reason from .felcsut.raw
+
+select from .felcsut.raw where reason like "EMVA áll*"
+
+
+// which households contain the most winners (along with the amounts)
+select from
+(`cnt xdesc select nm: enlist name, cnt: count i,sum amount by city,address from
+select sum amount by name,city,address from .agrar.ppl where address<>`)
+where cnt>5
+
