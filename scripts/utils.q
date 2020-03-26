@@ -42,7 +42,7 @@
 .agrar.process_file:{[f]
   yr: `$ ssr[;".csv";""] ssr[f;.agrar.input,"utf8_";""];
   .agrar.log "  processing raw data for ", string yr;
-  t: ("SISSSSSI";enlist";")0:`$f;
+  t: ("SISSSSSJ";enlist";")0:`$f;
   t: `name`zip`settlement`address`reason`program`source`amount xcol t;
   t: update year: yr from t;
   t
@@ -64,7 +64,7 @@
     "Kkt.";"Baráti Kör"; "Egyesülés";"Gazdakör";"Olvasókör";"Club";"Társegyház";"Szerzetesrend";"Egyház";"Lelkészség";
     "Gazdaság";"Rt.";"Gyülekezet";"Erdőszöv";"Lovas Kör";"Ipartestület";"Nőegylet";"Polgárőrség";"Vadászegylet";
     "Fióktelepe";"Baromfi";"Hegypásztor Kör";"és vidéke";"TÉSZ";"Sport Kör";"Nővérek";"Sportkör";"Egylet";"Iskola";
-    "Erdőgazdálkodás";"Faiskola";"Kórház";"Múzeum";"Zarándokház";"Olvsdó kör");
+    "Erdőgazdálkodás";"Faiskola";"Kórház";"Múzeum";"Zarándokház";"Olvsdó kör";"Agrárkamara");
   raw_data: update is_firm:1b from raw_data where any upper[name] like/: firm_keywords;
   .agrar.raw: raw_data;
   .agrar.raw_loaded: 1b;
