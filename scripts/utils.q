@@ -66,6 +66,9 @@
     "Fióktelepe";"Baromfi";"Hegypásztor Kör";"és vidéke";"TÉSZ";"Sport Kör";"Nővérek";"Sportkör";"Egylet";"Iskola";
     "Erdőgazdálkodás";"Faiskola";"Kórház";"Múzeum";"Zarándokház";"Olvsdó kör";"Agrárkamara");
   raw_data: update is_firm:1b from raw_data where any upper[name] like/: firm_keywords;
+
+  land_based_categories: `$("Területalapú támogatás";"Zöldítés támogatás igénylése");
+  raw_data: update land_based: 1b from raw_data where reason in land_based_categories;
   .agrar.raw: raw_data;
   .agrar.raw_loaded: 1b;
   .agrar.raw
