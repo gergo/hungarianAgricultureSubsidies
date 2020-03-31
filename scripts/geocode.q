@@ -1,7 +1,7 @@
 \c 25 180
 \p 8848
 
-system "l utils.q";
+system "l scores.q";
 
 .geocode.dir: .agrar.root,"/../geocode/";
 
@@ -16,7 +16,7 @@ system "l utils.q";
   select split: .geocode.save_csv'[i;tbls] from splitTables;
   };
 
-.geocode.init{[]
+.geocode.init:{[]
   .agrar.raw: .agrar.load_csvs[];
   .agrar.firms: .agrar.load_firms[];
   .agrar.ppl: .agrar.load_individuals[0];
