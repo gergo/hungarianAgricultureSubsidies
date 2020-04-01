@@ -2,4 +2,4 @@
 
 QHOME=${QHOME:-~/q}
 
-rlwrap ${QHOME}/m64/q analysis.q "RUN"
+rlwrap "${QHOME}"/m64/q analysis.q "RUN"
