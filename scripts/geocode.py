@@ -125,6 +125,7 @@ def process_file(input_filename, output_filename):
         address = row[address_column_name] + ',Hungary'
         # While the address geocoding is not finished:
         geocoded = False
+        geocode_result = None
         while geocoded is not True:
             # Geocode the address with google
             try:
@@ -164,7 +165,7 @@ def process_file(input_filename, output_filename):
     # All done
     logger.info("Finished geocoding all addresses")
     # Write the full results to csv using the pandas library.
-    pd.DataFrame(results).to_csv(output_filename, encoding='utf8')
+    pd.DataFrame(results).to_csv(output_filename, encoding='utf8', index_label='index')
 
 
 def test_api():
@@ -183,31 +184,28 @@ def usage():
 
 def main():
     try:
-        opts, args = getopt.getopt(sys.argv[1:], "hio:v", ["help", "input=", "output="])
+        opts, args = getopt.getopt(sys.argv[1:], "hio", ["help", "input=", "output="])
     except getopt.GetoptError as err:
         # print help information and exit:
-        print(err) # will print something like "option -a not recognized"
+        print(err)  # will print something like "option -a not recognized"
         usage()
         sys.exit(2)
-    input = None
-    output = None
-    verbose = False
+    input_file = None
+    output_file = None
     for o, a in opts:
-        if o == "-v":
-            verbose = True
-        elif o in ("-h", "--help"):
+        if o in ("-h", "--help"):
             usage()
             sys.exit()
         elif o in ("-o", "--output"):
-            output = a
+            output_file = a
         elif o in ("-i", "--input"):
-            input = a
+            input_file = a
         else:
             assert False, "unhandled option"
-    logger.info(input)
-    logger.info(output)
+    logger.info(input_file)
+    logger.info(output_file)
     test_api()
-    process_file(input, output)
+    process_file(input_file, output_file)
 
 
 if __name__ == "__main__":
