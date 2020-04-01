@@ -23,6 +23,7 @@ import logging
 import time
 import sys
 import getopt
+import os
 
 logger = logging.getLogger("root")
 logger.setLevel(logging.DEBUG)
@@ -31,7 +32,7 @@ ch = logging.StreamHandler()
 ch.setLevel(logging.DEBUG)
 logger.addHandler(ch)
 
-#------------------ CONFIGURATION -------------------------------
+# ------------------ CONFIGURATION -------------------------------
 
 # Set your Google API key here.
 # Even if using the free 2500 queries a day, its worth getting an API key since the rate limit is 50 / second.
@@ -39,13 +40,17 @@ logger.addHandler(ch)
 # With a "Google Maps Geocoding API" key from https://console.developers.google.com/apis/,
 # the daily limit will be 2500, but at a much faster rate.
 # Example: API_KEY = 'AIzaSyC9azed9tLdjpZNjg2_kVePWvMIBq154eA'
-API_KEY = ''
+API_KEY = os.environ['MAPS_API_KEY']
+if API_KEY is None:
+    sys.exit("MAPS_API_KEY is missing. Add it as an Environment variable")
+
 # Backoff time sets how many minutes to wait between google pings when your API limit is hit
 BACKOFF_TIME = 30
 # Specify the column name in your input data that contains addresses here
 address_column_name = "query"
 # Return Full Google Results? If True, full JSON results from Google are included in output
 RETURN_FULL_RESULTS = True
+
 
 def get_google_results(address, api_key=None, return_full_response=False):
     """
@@ -73,7 +78,7 @@ def get_google_results(address, api_key=None, return_full_response=False):
     # if there's no results or an error, return empty results.
     if len(results['results']) == 0:
         output = {
-            "formatted_address" : None,
+            "formatted_address": None,
             "latitude": None,
             "longitude": None,
             "accuracy": None,
@@ -84,7 +89,7 @@ def get_google_results(address, api_key=None, return_full_response=False):
     else:
         answer = results['results'][0]
         output = {
-            "formatted_address" : answer.get('formatted_address'),
+            "formatted_address": answer.get('formatted_address'),
             "latitude": answer.get('geometry').get('location').get('lat'),
             "longitude": answer.get('geometry').get('location').get('lng'),
             "accuracy": answer.get('geometry').get('location_type'),
@@ -133,7 +138,7 @@ def process_file(input_filename, output_filename):
             # If we're over the API limit, backoff for a while and try again later.
             if geocode_result['status'] == 'OVER_QUERY_LIMIT':
                 logger.info("Hit Query Limit! Backing off for a bit.")
-                time.sleep(BACKOFF_TIME * 60) # sleep for 30 minutes
+                time.sleep(BACKOFF_TIME * 60)  # sleep for 30 minutes
                 geocoded = False
             else:
                 # If we're ok with API use, save the results
@@ -166,12 +171,15 @@ def test_api():
     test_result = get_google_results("London, England", API_KEY, RETURN_FULL_RESULTS)
     if (test_result['status'] != 'OK') or (test_result['formatted_address'] != 'London, UK'):
         logger.warning("There was an error when testing the Google Geocoder.")
-        raise ConnectionError('Problem with test results from Google Geocode - check your API key and internet connection.')
+        raise ConnectionError(
+            'Problem with test results from Google Geocode - check your API key and internet connection.')
     logger.info("test_api() succeeded")
     logger.info(test_result)
 
+
 def usage():
     print("./geocode.py --input ../geocode/agrar_raw_test.csv --output ../geocode/test_output.csv")
+
 
 def main():
     try:
@@ -200,6 +208,7 @@ def main():
     logger.info(output)
     test_api()
     process_file(input, output)
+
 
 if __name__ == "__main__":
     main()
