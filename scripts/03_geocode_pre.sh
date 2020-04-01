@@ -4,4 +4,4 @@ mkdir ../geocode
 
 QHOME=${QHOME:-~/q}
 
-rlwrap ${QHOME}/m64/q geocode.q "RUN"
+rlwrap "${QHOME}"/m64/q geocode.q "RUN"
