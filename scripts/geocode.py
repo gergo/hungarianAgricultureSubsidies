@@ -47,7 +47,6 @@ address_column_name = "query"
 # Return Full Google Results? If True, full JSON results from Google are included in output
 RETURN_FULL_RESULTS = True
 
-
 def get_google_results(address, api_key=None, return_full_response=False):
     """
     Get geocode results from Google Maps Geocoding API.
@@ -104,96 +103,100 @@ def get_google_results(address, api_key=None, return_full_response=False):
 
     return output
 
-#------------------ PROCESSING LOOP -----------------------------
 
-# Ensure, before we start, that the API key is ok/valid, and internet access is ok
-test_result = get_google_results("London, England", API_KEY, RETURN_FULL_RESULTS)
-if (test_result['status'] != 'OK') or (test_result['formatted_address'] != 'London, UK'):
-    logger.warning("There was an error when testing the Google Geocoder.")
-    raise ConnectionError('Problem with test results from Google Geocode - check your API key and internet connection.')
-
-# Create a list to hold results
-results = []
-# Go through each address in turn
-for address in addresses:
-    # While the address geocoding is not finished:
-    geocoded = False
-    while geocoded is not True:
-        # Geocode the address with google
-        try:
-            geocode_result = get_google_results(address, API_KEY, return_full_response=RETURN_FULL_RESULTS)
-        except Exception as e:
-            logger.exception(e)
-            logger.error("Major error with {}".format(address))
-            logger.error("Skipping!")
-            geocoded = True
-
-        # If we're over the API limit, backoff for a while and try again later.
-        if geocode_result['status'] == 'OVER_QUERY_LIMIT':
-            logger.info("Hit Query Limit! Backing off for a bit.")
-            time.sleep(BACKOFF_TIME * 60) # sleep for 30 minutes
-            geocoded = False
-        else:
-            # If we're ok with API use, save the results
-            # Note that the results might be empty / non-ok - log this
-            if geocode_result['status'] != 'OK':
-                logger.warning("Error geocoding {}: {}".format(address, geocode_result['status']))
-            logger.debug("Geocoded: {}: {}".format(address, geocode_result['status']))
-            results.append(geocode_result)
-            geocoded = True
-
-    # Print status every 100 addresses
-    if len(results) % 100 == 0:
-        logger.info("Completed {} of {} address".format(len(results), len(addresses)))
-
-    # Every 500 addresses, save progress to file(in case of a failure so you have something!)
-    if len(results) % 500 == 0:
-        pd.DataFrame(results).to_csv("{}_bak".format(output_filename))
-
-# All done
-logger.info("Finished geocoding all addresses")
-# Write the full results to csv using the pandas library.
-pd.DataFrame(results).to_csv(output_filename, encoding='utf8')
-
-def process_file(input_file, output_file):
-    #------------------ DATA LOADING --------------------------------
-    # Set your output file name here.
-    output_filename = '../geocode/agrar_geocoded_test.csv'
-    # Set your input file here
-    input_filename = "../geocode/agrar_raw_test.csv"
-
+def process_file(input_filename, output_filename):
     # Read the data to a Pandas Dataframe
     data = pd.read_csv(input_filename, encoding='utf8')
 
     if address_column_name not in data.columns:
         raise ValueError("Missing Address column in input data")
 
-    # Form a list of addresses for geocoding:
-    # Make a big list of all of the addresses to be processed.
-    addresses = data[address_column_name].tolist()
+    # Create a list to hold results
+    results = []
+    # Go through each address in turn
+    for index, row in data.iterrows():
+        # We know that these addresses are in Hungary, and there's a column for county, so add this for accuracy.
+        # (remove this line / alter for your own dataset)
+        address = row[address_column_name] + ',Hungary'
+        # While the address geocoding is not finished:
+        geocoded = False
+        while geocoded is not True:
+            # Geocode the address with google
+            try:
+                geocode_result = get_google_results(address, API_KEY, return_full_response=RETURN_FULL_RESULTS)
+            except Exception as e:
+                logger.exception(e)
+                logger.error("Major error with {}".format(address))
+                logger.error("Skipping!")
+                geocoded = True
 
-    # We know that these addresses are in Hungary, and there's a column for county, so add this for accuracy.
-    # (remove this line / alter for your own dataset)
-    addresses = (data[address_column_name] + ',Hungary').tolist()
+            # If we're over the API limit, backoff for a while and try again later.
+            if geocode_result['status'] == 'OVER_QUERY_LIMIT':
+                logger.info("Hit Query Limit! Backing off for a bit.")
+                time.sleep(BACKOFF_TIME * 60) # sleep for 30 minutes
+                geocoded = False
+            else:
+                # If we're ok with API use, save the results
+                # Note that the results might be empty / non-ok - log this
+                if geocode_result['status'] != 'OK':
+                    logger.warning("Error geocoding {}: {}".format(address, geocode_result['status']))
+                logger.debug("Geocoded: {}: {}".format(address, geocode_result['status']))
+                geocode_result['zip'] = row['zip']
+                geocode_result['settlement'] = row['settlement']
+                geocode_result['address'] = row['address']
+                geocode_result['query'] = row['query']
+                results.append(geocode_result)
+                geocoded = True
+
+        # Print status every 100 addresses
+        if len(results) % 100 == 0:
+            logger.info("Completed {} of {} address".format(len(results), len(data)))
+
+        # Every 500 addresses, save progress to file(in case of a failure so you have something!)
+        if len(results) % 500 == 0:
+            pd.DataFrame(results).to_csv("{}_bak".format(output_filename))
+
+    # All done
+    logger.info("Finished geocoding all addresses")
+    # Write the full results to csv using the pandas library.
+    pd.DataFrame(results).to_csv(output_filename, encoding='utf8')
 
 
-def main(argv):
-    inputfile = ''
-    outputfile = ''
+def test_api():
+    test_result = get_google_results("London, England", API_KEY, RETURN_FULL_RESULTS)
+    if (test_result['status'] != 'OK') or (test_result['formatted_address'] != 'London, UK'):
+        logger.warning("There was an error when testing the Google Geocoder.")
+        raise ConnectionError('Problem with test results from Google Geocode - check your API key and internet connection.')
+    logger.info("test_api() succeeded")
+    logger.info(test_result)
+
+def main():
     try:
-        opts, args = getopt.getopt(argv,"hi:o:",["ifile=","ofile="])
-    except getopt.GetoptError:
-        print 'test.py -i <inputfile> -o <outputfile>'
+        opts, args = getopt.getopt(sys.argv[1:], "hio:v", ["help", "input=", "output="])
+    except getopt.GetoptError as err:
+        # print help information and exit:
+        print(err) # will print something like "option -a not recognized"
+        usage()
         sys.exit(2)
-    for opt, arg in opts:
-        if opt == '-h':
-            print 'test.py -i <inputfile> -o <outputfile>'
+    input = None
+    output = None
+    verbose = False
+    for o, a in opts:
+        if o == "-v":
+            verbose = True
+        elif o in ("-h", "--help"):
+            usage()
             sys.exit()
-        elif opt in ("-i", "--ifile"):
-            inputfile = arg
-        elif opt in ("-o", "--ofile"):
-            outputfile = arg
-    process_file(inputfile, outputfile)
+        elif o in ("-o", "--output"):
+            output = a
+        elif o in ("-i", "--input"):
+            input = a
+        else:
+            assert False, "unhandled option"
+    logger.info(input)
+    logger.info(output)
+    # test_api()
+    process_file(input, output)
 
 if __name__ == "__main__":
-    main(sys.argv[1:])
+    main()
