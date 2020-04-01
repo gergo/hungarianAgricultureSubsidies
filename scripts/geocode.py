@@ -170,6 +170,9 @@ def test_api():
     logger.info("test_api() succeeded")
     logger.info(test_result)
 
+def usage():
+    print("./geocode.py --input ../geocode/agrar_raw_test.csv --output ../geocode/test_output.csv")
+
 def main():
     try:
         opts, args = getopt.getopt(sys.argv[1:], "hio:v", ["help", "input=", "output="])
@@ -195,7 +198,7 @@ def main():
             assert False, "unhandled option"
     logger.info(input)
     logger.info(output)
-    # test_api()
+    test_api()
     process_file(input, output)
 
 if __name__ == "__main__":
