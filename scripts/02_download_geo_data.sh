@@ -19,5 +19,5 @@ while IFS= read -r line; do
 done < tabs.txt
 
 
-cd $current_dir || exit 2
+cd "$current_dir" || exit 2
 exit 0
