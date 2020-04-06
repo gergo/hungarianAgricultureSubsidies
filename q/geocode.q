@@ -24,6 +24,6 @@ system "l scores.q";
   .agrar.ppl: .agrar.load_individuals[0];
   };
 
-if[`RUN=`$.z.x[0];
+if[`GEOCODE_PRE=`$.z.x[0];
   .geocode.init[];
   ];

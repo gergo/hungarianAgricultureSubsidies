@@ -76,6 +76,6 @@ system "l create_network.q";
   .agrar.analyze.big_wins[];
   };
 
-if[`RUN=`$.z.x[0];
+if[`ANALYSIS=`$.z.x[0];
   .agrar.analyze.init[];
   ];
