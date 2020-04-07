@@ -1,4 +1,4 @@
-system "l utils.q";
+system "l ../q/utils.q";
 
 .agrar.male_names: .agrar.download_names "osszesffi";
 .agrar.female_names: .agrar.download_names "osszesnoi";

@@ -1,8 +1,8 @@
 \c 25 180
 \p 8848
 
-system "l utils.q";
-system "l create_network.q";
+system "l ../q/utils.q";
+system "l ../q/create_network.q";
 
 .agrar.analyze.tiborcz:{[]
   .tiborcz.raw: select from .agrar.ppl where upper[name] like "*TIBORCZ*";

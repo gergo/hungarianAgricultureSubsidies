@@ -1,7 +1,7 @@
 \c 25 180
 \p 8848
 
-system "l scores.q";
+system "l ../q/scores.q";
 
 .geocode.dir: .agrar.root,"/../geocode/";
 
@@ -22,6 +22,16 @@ system "l scores.q";
   .agrar.raw: .agrar.load_csvs[];
   .agrar.firms: .agrar.load_firms[];
   .agrar.ppl: .agrar.load_individuals[0];
+  };
+
+// Load an individual csv with grocoded addresses
+.geocode.process_file:{[f]
+  yr: `$ ssr[;".csv";""] ssr[f;.agrar.input,"utf8_";""];
+  .agrar.log "  processing raw data for ", string yr;
+  t: ("SISSSSSJ";enlist";")0:`$f;
+  t: `name`zip`settlement`address`reason`program`source`amount xcol t;
+  t: update year: yr from t;
+  t
   };
 
 if[`GEOCODE_PRE=`$.z.x[0];
