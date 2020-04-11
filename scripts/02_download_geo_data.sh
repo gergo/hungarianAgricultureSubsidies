@@ -18,6 +18,8 @@ while IFS= read -r line; do
   cnt=$((cnt+1))
 done < tabs.txt
 
+# last row is 'total', header is split into 2 rows so delete first one
+sed -n -e "2,$(($(wc -l < Helysegek_2019_01_01.csv) - 1))p" Helysegek_2019_01_01.csv > helysegek.csv
 
 cd "$current_dir" || exit 2
 exit 0
