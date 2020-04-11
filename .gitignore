@@ -2,6 +2,8 @@
 input/csv/*
 input/zip/*
 output/*
+geocode/agrar_raw_*
+geocode/agrar_output*
 scripts/.ipynb_checkpoints
 local/*
 venv
