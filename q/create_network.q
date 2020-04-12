@@ -1,6 +1,6 @@
 \c 25 180
 
-system "l scores.q";
+system "l ../q/scores.q";
 
 ///
 // Raw data is too large to process on a personal computer so we group subsidies together for individuals

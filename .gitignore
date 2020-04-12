@@ -1,7 +1,10 @@
 .idea
 input/csv/*
 input/zip/*
+input/settlements/raw/settlements.xls
 output/*
+geocode/**/agrar_raw_*
+geocode/agrar_output*
 scripts/.ipynb_checkpoints
 local/*
 venv

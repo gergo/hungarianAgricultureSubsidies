@@ -15,6 +15,10 @@ Shane Lynn
 5th November 2016
 
 code forked from https://www.shanelynn.ie/batch-geocoding-in-python-with-google-geocoding-api
+
+test url:
+https://maps.googleapis.com/maps/api/geocode/json?address=1600+Amphitheatre+Parkway,
++Mountain+View,+CA&key=<YOUR_API_KEY>
 """
 
 import pandas as pd
