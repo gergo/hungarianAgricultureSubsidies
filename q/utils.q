@@ -4,6 +4,22 @@
 .agrar.names_dl: .agrar.root,"/../input/names/";
 .agrar.names_url: "http://www.nytud.mta.hu/oszt/nyelvmuvelo/utonevek/";
 
+.agrar.download_names:{[name]
+  data: @[system;
+    "curl -f ",.agrar.names_url,name," | iconv -f \"ISO-8859-2//IGNORE\" -t \"UTF-8\"";
+    {[nm;error]
+      show error;
+      :system "cat ",.agrar.names_dl,nm,".txt";
+      }[name;]
+    ];
+  `$ 1 _ data
+  };
+
+.agrar.male_names: .agrar.download_names "osszesffi";
+.agrar.female_names: .agrar.download_names "osszesnoi";
+.agrar.given_names: .agrar.female_names,.agrar.male_names;
+.agrar.remove_names: `$("Dr.";"dr.";"Dr";"dr";"néhai";"Néhai");
+
 .agrar.raw_loaded:0b;
 
 ///////////////////
@@ -104,17 +120,6 @@
   firms: select from .agrar.load_csvs[] where is_firm;
   .agrar.log "number of firm wins: ", string count firms;
   firms
-  }
-
-.agrar.download_names:{[name]
-  data: @[system;
-    "curl -f ",.agrar.names_url,name," | iconv -f \"ISO-8859-2//IGNORE\" -t \"UTF-8\"";
-    {[nm;error]
-      show error;
-      :system "cat ",.agrar.names_dl,nm,".txt";
-      }[name;]
-    ];
-  `$ 1 _ data
   };
 
 .agrar.log:{[msg]
