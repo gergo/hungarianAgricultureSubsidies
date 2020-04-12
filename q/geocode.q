@@ -14,7 +14,7 @@ system "l ../q/utils.q";
 
 .geocode.process_file:{[f]
   .agrar.log "  processing ", f;
-  t: ("ISSS";enlist",")0:`$f;
+  t: ("ISFFSSSISISSISSS";enlist",")0:`$f;
   t
   };
 
