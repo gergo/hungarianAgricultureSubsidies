@@ -22,9 +22,14 @@ system "l ../q/utils.q";
   };
 
 .agrar.export.init:{[]
+  // load raw data and it to split firms and individuals
   .agrar.raw: .agrar.load_csvs[];
   .agrar.firms: .agrar.load_firms[];
   .agrar.ppl: .agrar.load_individuals[0];
+
+  // Budapest zip overrides
+  .agrar.zip_overrides: .agrar.create_zip_overrides[.agrar.raw];
+  .agrar.raw: update zip_mod: zip ^ .agrar.zip_overrides[zip] from .agrar.raw;
   };
 
 if[`EXPORT=`$.z.x[0];
