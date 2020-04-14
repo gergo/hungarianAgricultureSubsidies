@@ -27,9 +27,16 @@ system "l ../q/utils.q";
   .agrar.firms: .agrar.load_firms[];
   .agrar.ppl: .agrar.load_individuals[0];
 
+  // join geocoded addresses
+  processed_addresses: `zip`settlement`address xkey select distinct zip,settlement,address,formatted_address,postcode,latitude,longitude from processed where status=`OK;
+  .agrar.raw1: .agrar.raw lj processed_addresses;
+
   // Budapest zip overrides
   .agrar.zip_overrides: .agrar.create_zip_overrides[.agrar.raw];
-  .agrar.raw: update zip_mod: zip ^ .agrar.zip_overrides[zip] from .agrar.raw;
+  .agrar.raw2: update zip_mod: zip ^ postcode ^ .agrar.zip_overrides[zip] ^ .agrar.zip_overrides[postcode] from .agrar.raw1;
+
+  .agrar.settlement_parts: .ksh.process_settlements_parts_file[];
+  .agrar.settlements: .ksh.process_settlements_file[];
   };
 
 if[`EXPORT=`$.z.x[0];
