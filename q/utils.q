@@ -131,3 +131,9 @@
   t1: update zip_mod:{ "I"$(-1 _ string[x]),"0"}'[zip_orig] from t;
   t1[`zip_orig]!t1[`zip_mod]
   };
+
+oj:{
+  lxy:0!lj[x;y];                  // Left join (plus remove keys)
+  lyx:(cols lxy) xcols 0!lj[y;x]; // Right join (plus remove keys and prepare cols order for union)
+  (cols key x) lxy union lyx      // Union (plus retrieve keys)
+  };
