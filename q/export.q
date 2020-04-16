@@ -21,24 +21,35 @@ system "l ../q/utils.q";
   .agrar.save_csv["agrar_wins"; .agrar.wins];
   };
 
-.agrar.export.init:{[]
+.agrar.export.load_wins:{[]
   // load raw data and it to split firms and individuals
-  .agrar.raw: .agrar.load_csvs[];
-  .agrar.firms: .agrar.load_firms[];
-  .agrar.ppl: .agrar.load_individuals[0];
+  raw: .agrar.load_csvs[];
+  // .agrar.firms: .agrar.load_firms[];
+  // .agrar.ppl: .agrar.load_individuals[0];
 
   // join geocoded addresses
+  processed: .geocode.process_files[];
   processed_addresses: `zip`settlement`address xkey select distinct zip,settlement,address,formatted_address,postcode,latitude,longitude from processed where status=`OK;
-  .agrar.raw1: .agrar.raw lj processed_addresses;
+  raw1: raw lj processed_addresses;
 
   // Budapest zip overrides
-  .agrar.zip_overrides: .agrar.create_zip_overrides[.agrar.raw];
-  .agrar.raw2: update zip_mod: zip ^ postcode ^ .agrar.zip_overrides[zip] ^ .agrar.zip_overrides[postcode] from .agrar.raw1;
+  zip_overrides: .agrar.create_zip_overrides[raw];
+  .agrar.full: update zip_mod: zip ^ postcode ^ zip_overrides[zip] ^ zip_overrides[postcode] from raw1;
+  };
 
-  .agrar.settlement_parts: .ksh.process_settlements_parts_file[];
-  .agrar.settlements: .ksh.process_settlements_file[];
+.agrar.export.load_settlement_data:{[]
+  // load settlement data
+  settlements: select name:helyseg,ksh_id:ksh_kod,settlement_type:tipus,county:megye,district:jaras_nev,district_code:jaras_kod,
+    county_capital:megyeszekhely,area:terulet,population:nepesseg,homes:lakasok from .ksh.process_settlements_file[];
+
+  // add zips
+  bp_zips: select zip by ksh_id from update zip:{"I"$"1",(ssr[;". ker.";""] ssr[;"Budapest ";""] string[x]),"0"}'[name] from select name,ksh_id from settlements where name like "Budapest *";
+  zips: bp_zips, select zip by ksh_id from select zip: iranyito_szam, ksh_id: ksh_kod from .ksh.process_settlements_parts_file[] where not helyseg like "Budapest*";
+
+  .agrar.settlement_details: zips lj `ksh_id xkey select name,ksh_id,settlement_type,county,district,district_code,county_capital,area,population,homes from settlements;
   };
 
 if[`EXPORT=`$.z.x[0];
-  .agrar.export.init[];
+  .agrar.export.load_wins[];
+  .agrar.export.load_settlement_data[];
   ];
