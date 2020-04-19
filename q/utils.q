@@ -140,13 +140,6 @@
   delete is_firm,name_parts from data
   };
 
-.agrar.load_firms:{[]
-  .agrar.log "Loading firms wins";
-  firms: select from .agrar.load_csvs[] where is_firm;
-  .agrar.log "number of firm wins: ", string count firms;
-  firms
-  };
-
 .agrar.log:{[msg]
   show string[.z.T],": ",msg;
   };
