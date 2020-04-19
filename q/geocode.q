@@ -44,6 +44,10 @@ system "l ../q/utils.q";
   delete from unique_addresses where ([] zip;settlement;address) in key processed_addresses
   };
 
+.geocode.save_all_processed:{[]
+  (hsym `$.geocode.dir,"agrar_output_all.csv") 0: "," 0: .geocode.process_files[];
+  };
+
 .geocode.init_pre:{[]
   .agrar.raw: .agrar.load_csvs[];
   };
