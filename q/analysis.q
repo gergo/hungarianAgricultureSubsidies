@@ -51,7 +51,7 @@ system "l ../q/create_network.q";
 
 .agrar.analyze.init:{[]
   .agrar.raw: .agrar.load_csvs[];
-  .agrar.firms: .agrar.load_firms[];
+  .agrar.firms: select from .agrar.raw where is_firm;
   .agrar.ppl: .agrar.load_individuals[0];
 
   .agrar.analyze.felcsut[];
