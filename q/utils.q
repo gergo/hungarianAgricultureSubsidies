@@ -43,9 +43,8 @@
 .agrar.normalize_address:{[address]
   a: string address;
   a1: .agrar.remove_last_dot[a];
-  a2: .agrar.remove_street[a1];
-  a3: .agrar.remove_spaces[a2];
-  `$ upper a3
+  a2: .agrar.remove_spaces[a1];
+  `$ upper a2
   };
 
 .agrar.fix_missing_zips:{[data]
@@ -74,7 +73,9 @@
 // CSV utils
 ///////////////////
 .agrar.save_csv:{[name;data]
-  (hsym `$.agrar.output,name,".csv") 0: "," 0: data;
+  file: .agrar.output,name,".csv";
+  .agrar.log "Saving csv: ",file;
+  (hsym `$file) 0: "," 0: data;
   };
 
 .agrar.process_file:{[f]
@@ -107,6 +108,9 @@
 
   land_based_categories: `$("Területalapú támogatás";"Zöldítés támogatás igénylése");
   raw_data: update land_based: 1b from raw_data where reason in land_based_categories;
+  raw_data: update gender: .agrar.determine_gender'[name] from raw_data where not is_firm;
+  raw_data: update address: .agrar.normalize_address'[address] from raw_data;
+
   raw_data: .agrar.fix_missing_zips[raw_data];
   .agrar.raw: raw_data;
   .agrar.raw_loaded: 1b;
@@ -132,10 +136,8 @@
   data: delete from raw_data where abs[amount] < cutoff;
   data: delete from data where name=`;
   .agrar.log "firms and small amounts removed";
-
-  raw: update gender: .agrar.determine_gender'[name],address: .agrar.normalize_address'[address] from data;
-  .agrar.log "number of individual wins: ", string count raw;
-  delete is_firm,name_parts from raw
+  .agrar.log "number of individual wins: ", string count data;
+  delete is_firm,name_parts from data
   };
 
 .agrar.load_firms:{[]
