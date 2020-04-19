@@ -52,6 +52,12 @@ system "l ../q/utils.q";
   .agrar.full: raw_subsidies_3_with_bp_districts lj `settlement_mod xkey select distinct ksh_id,settlement_mod from .agrar.settlement_details;
   };
 
+.agrar.save:{[]
+  .agrar.save_csv["agrar_full_wins"; .agrar.full];
+  .agrar.save_csv["agrar_settlements"; .agrar.settlement_details];
+  };
+
 if[`EXPORT=`$.z.x[0];
   .agrar.init[];
+  .agrar.save[]
   ];
