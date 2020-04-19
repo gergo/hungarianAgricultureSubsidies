@@ -40,8 +40,8 @@ system "l ../q/utils.q";
   raw_subsidies_2_with_zip_mod: update zip_mod: zip ^ postcode ^ zip_overrides[zip] ^ zip_overrides[postcode] from raw_subsidies_1_with_clean_addresses;
 
   // Budapest district map
-  bp_district_names: update zip_mod:{"I"$"1",(ssr[;". ker.";""] ssr[;"Budapest ";""] string[x]),"0"}'[name] from select from settlements where name like "Budapest *";
-  bp_district_name_map: bp_district_names[`zip_mod]!bp_district_names[`name];
+  bp_district_names: update zip_mod:{"I"$"1",(ssr[;". ker.";""] ssr[;"Budapest ";""] string[x]),"0"}'[settlement] from select from settlements where settlement like "Budapest *";
+  bp_district_name_map: bp_district_names[`zip_mod]!bp_district_names[`settlement];
   raw_subsidies_3_with_bp_districts: update settlement_mod: settlement ^ bp_district_name_map[zip_mod] from raw_subsidies_2_with_zip_mod;
 
   // add zip codes to settlements
