@@ -48,6 +48,28 @@
   `$ upper a3
   };
 
+.agrar.fix_missing_zips:{[data]
+  missing_address: select from data where zip=0N;
+  distinct_winners: select distinct name,zip from data;
+  name_counts: select cnt: count i by name from distinct_winners;
+  can_fix: exec name from name_counts where cnt=2,name in (exec distinct name from missing_address);
+  no_change: update addr_fixed: 0b from select from data where zip<>0N;
+  to_fix: select from data where zip=0N,name in can_fix;
+  cant_fix: select from data where zip=0N,not name in can_fix;
+
+  // save records that don't have address
+  (`$"no_address.csv") 0: "," 0: cant_fix;
+  .agrar.log "address cannot be fixed for sum amount of: ",string[exec sum amount from cant_fix],". Dropping records.";
+
+  // take first address by zip for each winner and use that for the manual override
+  addr_to_update: `name xkey select from
+    (select name,zip,settlement,address from data where name in can_fix,zip<>0N)
+    where ({x in 1#x};i) fby zip;
+  fixed: update addr_fixed: 1b from to_fix lj addr_to_update;
+  .agrar.log "address fixed for sum amount of: ", string[exec sum amount from fixed];
+  no_change,fixed
+  };
+
 ///////////////////
 // CSV utils
 ///////////////////
@@ -85,6 +107,7 @@
 
   land_based_categories: `$("Területalapú támogatás";"Zöldítés támogatás igénylése");
   raw_data: update land_based: 1b from raw_data where reason in land_based_categories;
+  raw_data: .agrar.fix_missing_zips[raw_data];
   .agrar.raw: raw_data;
   .agrar.raw_loaded: 1b;
   .agrar.raw
