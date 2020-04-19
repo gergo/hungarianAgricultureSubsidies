@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-mkdir ../geocode
+mkdir -p ../geocode
 
 QHOME=${QHOME:-~/q}
 
