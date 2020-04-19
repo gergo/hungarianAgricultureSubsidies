@@ -4,15 +4,20 @@
 .agrar.names_dl: .agrar.root,"/../input/names/";
 .agrar.names_url: "http://www.nytud.mta.hu/oszt/nyelvmuvelo/utonevek/";
 
+.agrar.log:{[msg]
+  show string[.z.T],": ",msg;
+  };
+
 .agrar.download_names:{[name]
+  .agrar.log "loading names: ", name;
   data: @[system;
-    "curl -f ",.agrar.names_url,name," | iconv -f \"ISO-8859-2//IGNORE\" -t \"UTF-8\"";
+    "cat ",.agrar.names_dl,name,".txt";
     {[nm;error]
       show error;
-      :system "cat ",.agrar.names_dl,nm,".txt";
+      :system "curl -f ",.agrar.names_url,nm," | iconv -f \"ISO-8859-2//IGNORE\" -t \"UTF-8\" | sed -e 's/.* -- //g'";
       }[name;]
     ];
-  `$ 1 _ data
+  `$data
   };
 
 .agrar.male_names: .agrar.download_names "osszesffi";
@@ -137,10 +142,6 @@
   .agrar.log "firms and small amounts removed";
   .agrar.log "number of individual wins: ", string count data;
   delete is_firm,name_parts from data
-  };
-
-.agrar.log:{[msg]
-  show string[.z.T],": ",msg;
   };
 
 .agrar.create_zip_overrides:{[dataset]
