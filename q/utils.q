@@ -100,6 +100,7 @@
 
   raw_data: update name_parts:{count " " vs string x}'[name] from update name:{`$ ssr[string[x];"  ";" "]}'[name] from raw_data;
   raw_data: update is_firm:1b from raw_data where name_parts>5;
+  .agrar.log "marking firms based on keywords";
   firm_keywords: {"*",x,"*"} each upper ("BT";"KFT";"Alapítvány";"Egyesület";"ZRT";"VÁLLALAT";"Iroda";"Önkormányzat";
     "Község";"Társulat";"Szövetkezet";"Asztaltársaság";"Vadásztársaság";"Intézmény";"Társulás";"Közösség";"Központ";
     "Társaság";"szolgálat";"Plébánia";"Szervezet";"Szövetség";"Sportklub";"Igazgatóság";"Intézet";"Klub";"Minisztérium";
@@ -110,9 +111,12 @@
     "Erdőgazdálkodás";"Faiskola";"Kórház";"Múzeum";"Zarándokház";"Olvsdó kör";"Agrárkamara");
   raw_data: update is_firm:1b from raw_data where any upper[name] like/: firm_keywords;
 
+  .agrar.log "marking land-based wins";
   land_based_categories: `$("Területalapú támogatás";"Zöldítés támogatás igénylése");
   raw_data: update land_based: 1b from raw_data where reason in land_based_categories;
+  .agrar.log "determinig gender of winners";
   raw_data: update gender: .agrar.determine_gender'[name] from raw_data where not is_firm;
+  .agrar.log "normalize addresses";
   raw_data: update address: .agrar.normalize_address'[address] from raw_data;
 
   raw_data: .agrar.fix_missing_zips[raw_data];
