@@ -41,7 +41,7 @@ system "l ../q/utils.q";
   processed_addresses: `zip`settlement`address xkey select distinct zip,settlement,address,status from processed where status=`OK;
 
   // delete addresses that were already successfully geocoded
-  delete from unique addresses where ([] zip;settlement;address) in key processed_addresses
+  delete from unique_addresses where ([] zip;settlement;address) in key processed_addresses
   };
 
 .geocode.init_pre:{[]
