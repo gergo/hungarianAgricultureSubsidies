@@ -43,8 +43,7 @@
 .agrar.normalize_address:{[address]
   a: string address;
   a1: .agrar.remove_last_dot[a];
-  a2: .agrar.remove_spaces[a1];
-  `$ upper a2
+  `$.agrar.remove_spaces[a1]
   };
 
 .agrar.fix_missing_zips:{[data]
