@@ -5,26 +5,36 @@ system "l ../q/geocode.q";
 system "l ../q/utils.q";
 
 .agrar.export.normalize:{[]
-  .agrar.settlements: update settlement_id: i from select distinct zip,settlement from .agrar.ppl;
-  normalized1: delete zip,settlement from .agrar.ppl lj `zip`settlement xkey .agrar.settlements;
+  .data.settlement_details: update settlement_id: i from delete zip_mod,settlement_mod from .data.settlement_details;
 
-  .agrar.winners: update winner_id: i from select distinct name,gender,address,settlement_id from normalized1;
-  normalized2: delete name,gender,address,settlement_id from normalized1 lj `name`gender`address`settlement_id xkey .agrar.winners;
+  normalized1: delete zip_mod,settlement_mod,ksh_id,zip,settlement from .data.full lj
+    `zip`settlement xkey select settlement_id,zip,settlement from .data.settlement_details;
 
-  .agrar.funds: update fund_id: i from select distinct reason,program,source from normalized2;
-  .agrar.wins: delete reason,program,source from normalized2 lj `reason`program`source xkey .agrar.funds;
+  .data.winners: update winner_id: i from
+    select distinct name,gender,address,formatted_address,is_firm,latitude,longitude,settlement_id from normalized1;
+  normalized2: delete name_parts,addr_fixed,postcode,name,gender,address,formatted_address,is_firm,latitude,longitude,settlement_id from normalized1 lj
+    `name`gender`address`formatted_address`is_firm`latitude`longitude`settlement_id xkey .data.winners;
 
-  .agrar.save_csv["agrar_full_wins"; .agrar.ppl];
-  .agrar.save_csv["agrar_settlements"; .agrar.settlements];
-  .agrar.save_csv["agrar_winners"; .agrar.winners];
-  .agrar.save_csv["agrar_funds"; .agrar.funds];
-  .agrar.save_csv["agrar_wins"; .agrar.wins];
+  .data.funds: update fund_id: i from select distinct reason,program,source,land_based from normalized2;
+  .data.wins: delete reason,program,source,land_based from normalized2 lj `reason`program`source`land_based xkey .data.funds;
+
+  .agrar.save_csv["agrar_settlements"; .data.settlement_details];
+  .agrar.save_csv["agrar_winners"; .data.winners];
+  .agrar.save_csv["agrar_funds"; .data.funds];
+  .agrar.save_csv["agrar_wins"; .data.wins];
+  .agrar.save_csv["agrar_full"; .data.full];
   };
 
-.agrar.init:{[]
+.agrar.export.save:{[]
+  .agrar.export.normalize[];
+  };
+
+.agrar.export.init:{[]
   // load settlement data
   settlements: select settlement:helyseg,ksh_id:ksh_kod,settlement_type:tipus,county:megye,district:jaras_nev,district_code:jaras_kod,
-    county_capital:megyeszekhely,area:terulet,population:nepesseg,homes:lakasok from .ksh.process_settlements_file[];
+    county_capital:megyeszekhely,area:terulet,population:nepesseg,homes:lakasok,is_capital:{3}'[i] from .ksh.process_settlements_file[];
+  settlements: update is_capital:{2}'[i] from settlements where settlement=county_capital;
+  settlements: update is_capital:{1}'[i] from settlements where settlement like "Budapest";
 
   // load agricultural subsidies
   raw_subsidies_0: .agrar.load_csvs[];
@@ -46,18 +56,13 @@ system "l ../q/utils.q";
 
   // add zip codes to settlements
   zips_by_settlement: select distinct zip_mod by settlement_mod from raw_subsidies_3_with_bp_districts where zip_mod<>0N;
-  .agrar.settlement_details: delete settlement from ungroup (update settlement_mod:settlement from settlements) lj zips_by_settlement;
+  .data.settlement_details: update settlement:settlement_mod,zip:zip_mod from ungroup (update settlement_mod:settlement from settlements) lj zips_by_settlement;
 
   // add ksh_id to subsidies
-  .agrar.full: raw_subsidies_3_with_bp_districts lj `settlement_mod xkey select distinct ksh_id,settlement_mod from .agrar.settlement_details;
-  };
-
-.agrar.save:{[]
-  .agrar.save_csv["agrar_full_wins"; .agrar.full];
-  .agrar.save_csv["agrar_settlements"; .agrar.settlement_details];
+  .data.full: raw_subsidies_3_with_bp_districts lj `settlement_mod xkey select distinct ksh_id,settlement_mod from .data.settlement_details;
   };
 
 if[`EXPORT=`$.z.x[0];
-  .agrar.init[];
-  .agrar.save[]
+  .agrar.export.init[];
+  .agrar.export.normalize[]
   ];
