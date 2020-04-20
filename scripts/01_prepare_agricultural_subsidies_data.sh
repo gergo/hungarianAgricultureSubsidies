@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 # download raw, zipped data
-mkdir ../input/zip
+mkdir -p ../input/zip
 
 years=(2011 2012 2013 2014 2015 2016 2017 2018 2019)
 ids=(  17   22   26   31   38   42   48   54   60)
@@ -11,7 +11,7 @@ for i in "${!years[@]}"; do
 done
 
 # unzip files
-mkdir ../input/csv
+mkdir -p ../input/csv
 
 for file in "../input/zip/"*
 do

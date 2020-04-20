@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 current_dir=$(pwd)
-mkdir ../input/settlements
+mkdir -p ../input/settlements
 cd ../input/settlements || exit 1
 
 if [ ! -f raw/settlements.xls ]; then
