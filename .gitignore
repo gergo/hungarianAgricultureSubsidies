@@ -1,6 +1,7 @@
 .idea
 input/csv/*
 input/zip/*
+input/names
 input/settlements/raw/settlements.xls
 output/*
 imgs

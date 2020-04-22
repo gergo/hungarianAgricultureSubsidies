@@ -8,7 +8,7 @@ system "l ../q/utils.q";
 // Load an individual csv with geo-coded addresses
 .geocode.process_files:{[]
   .agrar.log "Loading geo-coded files";
-  files: system "ls ",.geocode.dir,"agrar_output_[0-9]*.csv";
+  files: system "ls ",.geocode.dir,"DONE/agrar_output_[0-9]*.csv";
   raze .geocode.process_file each files
   };
 
@@ -32,11 +32,28 @@ system "l ../q/utils.q";
   .agrar.log "csvs saved: ", string count tmp;
   };
 
+.geocode.get_unprocessed_addresses:{[addresses]
+  // select unique addresses
+  unique_addresses: select distinct zip,settlement,address from addresses;
+
+  // load addresses that were already processed for geocoding
+  processed: .geocode.process_files[];
+  processed_addresses: `zip`settlement`address xkey select distinct zip,settlement,address,status from processed where status=`OK;
+
+  // delete addresses that were already successfully geocoded
+  delete from unique_addresses where ([] zip;settlement;address) in key processed_addresses
+  };
+
+.geocode.save_all_processed:{[]
+  (hsym `$.geocode.dir,"agrar_output_all.csv") 0: "," 0: .geocode.process_files[];
+  };
+
 .geocode.init_pre:{[]
   .agrar.raw: .agrar.load_csvs[];
   };
 
 if[`GEOCODE_PRE=`$.z.x[0];
   .geocode.init_pre[];
-  .geocode.split[.agrar.raw];
+  unprocessed: .geocode.get_unprocessed_addresses[.agrar.raw];
+  .geocode.split[unprocessed];
   ];
