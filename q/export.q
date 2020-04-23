@@ -7,7 +7,8 @@ system "l ../q/utils.q";
 .agrar.export.normalize:{[]
   .data.settlement_details: update settlement_id: i from delete zip_mod,settlement_mod from .data.settlement_details;
 
-  normalized1: delete zip_mod,settlement_mod,ksh_id,zip,settlement from .data.full lj
+  normalized1: delete zip_mod,settlement_mod,ksh_id,zip,settlement from
+    (update settlement: settlement_mod,zip:zip_mod from .data.full) lj
     `zip`settlement xkey select settlement_id,zip,settlement from .data.settlement_details;
 
   .data.winners: update winner_id: i from
@@ -25,16 +26,12 @@ system "l ../q/utils.q";
   .agrar.save_csv["agrar_full"; .data.full];
   };
 
-.agrar.export.save:{[]
-  .agrar.export.normalize[];
-  };
-
 .agrar.export.init:{[]
   // load settlement data
   settlements: select settlement:helyseg,ksh_id:ksh_kod,settlement_type:tipus,county:megye,district:jaras_nev,district_code:jaras_kod,
     county_capital:megyeszekhely,area:terulet,population:nepesseg,homes:lakasok,is_capital:{3}'[i] from .ksh.process_settlements_file[];
   settlements: update is_capital:{2}'[i] from settlements where settlement=county_capital;
-  settlements: update is_capital:{1}'[i] from settlements where settlement like "Budapest";
+  settlements: update is_capital:{1}'[i] from settlements where settlement like "Budapest*";
 
   // load agricultural subsidies
   raw_subsidies_0: .agrar.load_csvs[];
@@ -64,5 +61,5 @@ system "l ../q/utils.q";
 
 if[`EXPORT=`$.z.x[0];
   .agrar.export.init[];
-  .agrar.export.normalize[]
+  .agrar.export.normalize[];
   ];
