@@ -51,12 +51,14 @@ rm(agrar_funds)
 rm(agrar_settlements)
 
 agrar_full$land_based <- as.factor(agrar_full$land_based)
+agrar_full$year <- as.factor(agrar_full$year)
 agrar_full$is_capital <- as.factor(agrar_full$is_capital)
+agrar_full$is_firm <- as.factor(agrar_full$is_firm)
 agrar_full$settlement_type <- as.factor(agrar_full$settlement_type)
 
-agrar_full$winner_id <- NULL;
-agrar_full$fund_id <- NULL;
-agrar_full$settlement_id <- NULL;
+agrar_full$winner_id <- NULL
+agrar_full$fund_id <- NULL
+agrar_full$settlement_id <- NULL
 
 options(scipen=999)
 set.seed(42)
@@ -70,6 +72,7 @@ descr_amount <- as.matrix( c( mean(amount) , sd(amount), min(amount) , max(amoun
 # Name the dimensions as a list to have neat output 
 dimnames(descr_amount)[[1]] <- list('mean','sd','min','max', 'p50' , 'p95' , 'n')
 print(descr_amount)
+rm(amount)
 
 ##########################
 # Yearly distribution of amounts
@@ -84,6 +87,7 @@ save_3d_chart <- function(data, bins, target_var, dataset) {
     summarise(cnt=n(),
               log_avg=log(mean(amount)),
               avg=mean(amount),
+              log_sum=log(sum(amount)),
               sum=sum(amount)) %>%
     arrange(desc(year)) %>%
     dcast(rank ~ year, value.var = target_var) %>%
@@ -96,21 +100,15 @@ save_3d_chart <- function(data, bins, target_var, dataset) {
                 xlab = "bins", ylab = "years", zlab = target_var,
                 border = "black", shade = 0.3,
                 space = 0.2, d = 4)
-  # Use text3D to label x axis
-  # text3D(x = 1:bins, y = rep(0.5, bins), z = rep(8, bins),
-  #       labels = rownames(chart_data),
-  #       add = TRUE, adj = 0)
-  # Use text3D to label y axis
-  # text3D(x = rep(1, years),   y = 1:years, z = rep(7, years),
-  #       labels  = colnames(chart_data),
-  #       add = TRUE, adj = 1)
-  
   # save image
-  png(filename=paste0(data_out, dataset,"_",target_var,"_",bins,".png"))
+  png(filename=paste0(data_out, "3d_",dataset,"_",target_var,"_",bins,".png"))
   plotdev()
   dev.off()
 }
 
+###################
+# full_by_year
+###################
 full_by_year <- agrar_full %>%
   select(year,amount,land_based,is_firm,is_capital)
 
@@ -118,20 +116,162 @@ save_3d_chart(full_by_year, 10, "log_avg", "all")
 save_3d_chart(full_by_year, 10, "avg", "all")
 save_3d_chart(full_by_year, 10, "sum", "all")
 
-firm_by_year <- agrar_full %>%
-  filter(is_firm == TRUE) %>%
-  select(year,amount,land_based,is_firm,is_capital)
+firm_by_year <- full_by_year %>%
+  filter(is_firm == 1)
 
 save_3d_chart(firm_by_year, 10, "log_avg", "firms")
 save_3d_chart(firm_by_year, 10, "avg", "firms")
 save_3d_chart(firm_by_year, 10, "sum", "firms")
 
-individuals_by_year <- agrar_full %>%
-  filter(is_firm == FALSE) %>%
-  select(year,amount,land_based,is_firm,is_capital)
+individuals_by_year <- full_by_year %>%
+  filter(is_firm == 0)
 
 save_3d_chart(individuals_by_year, 10, "log_avg", "individuals")
 save_3d_chart(individuals_by_year, 10, "avg", "individuals")
 save_3d_chart(individuals_by_year, 10, "sum", "individuals")
+
+rm(individuals_by_year)
+rm(firm_by_year)
+
+#########################
+# individuals_land_based
+#########################
+individuals_land_based <- full_by_year %>%
+  filter(is_firm == 0, land_based == 1)
+
+save_3d_chart(individuals_land_based, 10, "log_avg", "individuals-land-based")
+save_3d_chart(individuals_land_based, 20, "log_avg", "individuals-land-based")
+save_3d_chart(individuals_land_based, 20, "sum", "individuals-land-based")
+save_3d_chart(individuals_land_based, 50, "log_sum", "individuals-land-based")
+save_3d_chart(individuals_land_based, 30, "avg", "individuals-land-based")
+rm(individuals_land_based)
+
+##############################
+# individuals_not_land_based
+##############################
+individuals_not_land_based <- full_by_year %>%
+  filter(is_firm == 0, land_based == 0)
+
+save_3d_chart(individuals_not_land_based, 10, "log_avg", "individuals-decision-based")
+save_3d_chart(individuals_not_land_based, 20, "log_avg", "individuals-decision-based")
+save_3d_chart(individuals_not_land_based, 20, "sum", "individuals-decision-based")
+save_3d_chart(individuals_not_land_based, 50, "log_sum", "individuals-decision-based")
+save_3d_chart(individuals_not_land_based, 30, "avg", "individuals-decision-based")
+rm(individuals_not_land_based)
+rm(full_by_year)
+
+##############################
+# sum_by_address
+##############################
+sum_by_address <- agrar_full %>%
+  select(year,zip,address,amount,land_based,is_firm) %>%
+  group_by(year,zip,address,land_based,is_firm) %>%
+  summarise(amount=sum(amount)) 
+
+sum_by_address$land_based <- as.factor(sum_by_address$land_based)
+sum_by_address$is_firm <- as.factor(sum_by_address$is_firm)
+sum_by_address$year <- as.factor(sum_by_address$year)
+
+save_3d_chart(sum_by_address, 10, "avg", "summed-by-address")
+save_3d_chart(sum_by_address, 30, "avg", "summed-by-address")
+save_3d_chart(sum_by_address, 10, "log_avg", "summed-by-address")
+save_3d_chart(sum_by_address, 30, "log_avg", "summed-by-address")
+save_3d_chart(sum_by_address, 10, "sum", "summed-by-address")
+save_3d_chart(sum_by_address, 30, "sum", "summed-by-address")
+rm(sum_by_address)
+
+sum_by_address_indiv <- agrar_full %>%
+  filter(is_firm == 0, land_based == 0) %>% 
+  select(year,zip,address,amount,land_based,is_firm) %>%
+  group_by(year,zip,address,land_based,is_firm) %>%
+  summarise(amount=sum(amount))
+
+save_3d_chart(sum_by_address_indiv, 10, "avg", "summed-by-address-indiv")
+save_3d_chart(sum_by_address_indiv, 10, "sum", "summed-by-address-indiv")
+save_3d_chart(sum_by_address_indiv, 10, "log_avg", "summed-by-address-indiv")
+rm(sum_by_address_indiv)
+
+sum_by_address_indiv_land <- agrar_full %>%
+  filter(is_firm == 0, land_based == 1) %>% 
+  select(year,zip,address,amount,land_based,is_firm) %>%
+  group_by(year,zip,address,land_based,is_firm) %>%
+  summarise(amount=sum(amount))
+
+save_3d_chart(sum_by_address_indiv_land, 10, "avg", "summed-by-address-indiv")
+save_3d_chart(sum_by_address_indiv_land, 10, "log_avg", "summed-by-address-indiv")
+save_3d_chart(sum_by_address_indiv_land, 10, "sum", "summed-by-address-indiv")
+save_3d_chart(sum_by_address_indiv_land, 10, "log_sum", "summed-by-address-indiv")
+rm(sum_by_address_indiv_land)
+
+#########################
+# 2D charts
+#########################
+ggplot(data = agrar_full, aes(x = year, y = amount/1000000000, fill = is_firm)) + 
+  geom_bar(stat = "identity") +
+  labs(y = "sum amount (bn HUF)") +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
+  theme_minimal()
+ggsave(paste0(data_out, "2d_sum_by_year_isfirm.png"))
+
+
+ggplot(data = agrar_full, aes(x = year, y = amount/1000000000, fill = land_based)) + 
+  geom_bar(stat = "identity") +
+  labs(y = "sum amount (bn HUF)") +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
+  theme_minimal()
+ggsave(paste0(data_out, "2d_sum_by_year_land_based.png"))
+
+ggplot(data = agrar_full, aes(x = year, y = amount/1000000000, fill = is_capital)) + 
+  geom_bar(stat = "identity") +
+  labs(y = "sum amount (bn HUF)") +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
+  theme_minimal()
+ggsave(paste0(data_out, "2d_sum_by_year_is_capital.png"))
+
+######################
+# stacked bar charts
+#####################
+ggplot(data = agrar_full, aes(x = year, y = amount/1000000000, fill = is_firm)) + 
+  geom_bar(stat = "identity", position = "fill") +
+  labs(y = "percent of total amount") +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
+  theme_minimal()
+ggsave(paste0(data_out, "2d_sum_by_year_isfirm_stacked.png"))
+
+ggplot(data = agrar_full, aes(x = year, y = amount/1000000000, fill = land_based)) + 
+  geom_bar(stat = "identity", position = "fill") +
+  labs(y = "percent of total amount") +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
+  theme_minimal()
+ggsave(paste0(data_out, "2d_sum_by_year_land_based_stacked.png"))
+
+ggplot(data = agrar_full, aes(x = year, y = amount/1000000000, fill = is_capital)) + 
+  geom_bar(stat = "identity", position = "fill") +
+  ylab("percent of total amount") +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
+  theme_minimal()
+ggsave(paste0(data_out, "2d_sum_by_year_is_capital_stacked.png"))
+
+#############
+# By gender
+#############
+by_gender <- agrar_full %>%
+  filter(is_firm == 0) %>%
+  select(year,amount,land_based,is_capital,gender)
+
+ggplot(data = by_gender, aes(x = year, y = amount/1000000000, fill = gender)) + 
+  geom_bar(stat = "identity") +
+  labs(y = "sum amount (bn HUF)") +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
+  theme_minimal()
+ggsave(paste0(data_out, "2d_sum_by_year_by_gender.png"))
+
+ggplot(data = by_gender, aes(x = year, y = amount/1000000000, fill = gender)) + 
+  geom_bar(stat = "identity", position = "fill") +
+  ylab("percent of total amount") +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
+  theme_minimal()
+ggsave(paste0(data_out, "2d_sum_by_year_by_gender_stacked.png"))
+rm(by_gender)
 
 
