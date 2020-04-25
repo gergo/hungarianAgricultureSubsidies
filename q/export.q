@@ -3,6 +3,7 @@
 system "l ../q/ksh.q";
 system "l ../q/geocode.q";
 system "l ../q/utils.q";
+system "l ../q/elections.q";
 
 .agrar.export.normalize:{[]
   .data.settlement_details: update settlement_id: i from delete zip_mod,settlement_mod from .data.settlement_details;
@@ -18,7 +19,9 @@ system "l ../q/utils.q";
 
   .data.funds: update fund_id: i from select distinct reason,program,source,land_based from normalized2;
   .data.wins: delete reason,program,source,land_based from normalized2 lj `reason`program`source`land_based xkey .data.funds;
+  };
 
+.agrar.export.save:{[]
   .agrar.save_csv["agrar_settlements"; .data.settlement_details];
   .agrar.save_csv["agrar_winners"; .data.winners];
   .agrar.save_csv["agrar_funds"; .data.funds];
@@ -62,4 +65,5 @@ system "l ../q/utils.q";
 if[`EXPORT=`$.z.x[0];
   .agrar.export.init[];
   .agrar.export.normalize[];
+  // .agrar.export.save[];
   ];
