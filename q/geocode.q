@@ -38,7 +38,7 @@ system "l ../q/utils.q";
 .geocode.split:{[dataset]
   unique_addresses: select distinct zip,settlement,address from dataset;
   .agrar.log "splitting unique addresses ",string[count unique_addresses]," to smaller chunks";
-  .geocode.distinct_addresses: update query: {"+" sv string x,y,z}'[zip;settlement;address] from unique_addresses;
+  .geocode.distinct_addresses: update query: {"+" sv string x,y,z}'[address;settlement;zip] from unique_addresses;
   splitTables: ([] tbls: 0N 2499 # .geocode.distinct_addresses);
   tmp: select split: .geocode.save_csv'[i;tbls] from splitTables;
   .agrar.log "csvs saved: ", string count tmp;
