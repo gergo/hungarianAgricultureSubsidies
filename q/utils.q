@@ -110,7 +110,7 @@
     "Fióktelepe";"Baromfi";"Hegypásztor Kör";"és vidéke";"TÉSZ";"Sport Kör";"Nővérek";"Sportkör";"Egylet";"Iskola";
     "Erdőgazdálkodás";"Faiskola";"Kórház";"Múzeum";"Zarándokház";"Olvsdó kör";"Agrárkamara";"Agrár kamara";"Állami";
     "GAMESZ";"Testület";"Apostoli Exarchátus";"Parókia";"Gondnokság";"Szakképzési";"barátok Kör";" Megyei ";
-    "Testgyakorlók Kör";"Megyei Jogú";"Városgondnoksága")
+    "Testgyakorlók Kör";"Megyei Jogú";"Városgondnoksága");
   raw_data: update is_firm:1b from raw_data where any upper[name] like/: firm_keywords;
 
   .agrar.log "marking land-based wins";
