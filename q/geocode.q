@@ -16,7 +16,7 @@ system "l ../q/utils.q";
   files: system "ls ",.geocode.dir,"DONE/agrar_output_*.csv";
   raw: raze .geocode.process_file each files;
 
-  raw: update index=i from raw;
+  raw: update index:i from raw;
 
   // remove probable data errors:
   raw: delete from raw where not formatted_address like "*Hungary";
