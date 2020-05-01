@@ -91,6 +91,18 @@
   t
   };
 
+.agrar.capitalize:{[word]
+  (upper 1 # word),lower 1 _ word
+  };
+
+.agrar.remove_whitespace:{[word]
+  ssr[string[word];"  ";" "]
+  }
+
+.agrar.fix_name:{[nm]
+  `$ " " sv .agrar.capitalize each " " vs .agrar.remove_whitespace nm
+  };
+
 .agrar.load_csvs:{[]
   if[.agrar.raw_loaded;:.agrar.raw];
   .agrar.log "loading raw CSVs";
@@ -98,7 +110,9 @@
   raw_data: raze .agrar.process_file each files;
   .agrar.log "raw files loaded";
 
-  raw_data: update name_parts:{count " " vs string x}'[name] from update name:{`$ ssr[string[x];"  ";" "]}'[name] from raw_data;
+  raw_data: update name:.agrar.fix_name'[name] from raw_data;
+  raw_data: update name_parts:{count " " vs string x}'[name] from faw_data;
+
   raw_data: update is_firm:1b from raw_data where name_parts>5;
   .agrar.log "marking firms based on keywords";
   firm_keywords: {"*",x,"*"} each upper ("BT";"KFT";"Alapítvány";"Egyesület";"ZRT";"VÁLLALAT";"Iroda";"Önkormányzat";
