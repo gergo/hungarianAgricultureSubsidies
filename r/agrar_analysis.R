@@ -19,7 +19,8 @@ list.of.packages <-c("plyr",
                      "data.table",
                      "tidyverse",
                      "reshape2",
-                     "plot3D"
+                     "plot3D",
+                     "viridis"
                      )
 
 
@@ -53,6 +54,11 @@ rm(agrar_settlements)
 agrar_full$land_based <- as.factor(agrar_full$land_based)
 agrar_full$year <- as.factor(agrar_full$year)
 agrar_full$is_capital <- as.factor(agrar_full$is_capital)
+agrar_full$is_capital <- recode(agrar_full$is_capital,
+                                  `1` = "Budapest",
+                                  `2` = "County capital",
+                                  `3` = "Village or Town")
+
 agrar_full$is_firm <- as.factor(agrar_full$is_firm)
 agrar_full$settlement_type <- as.factor(agrar_full$settlement_type)
 
@@ -73,6 +79,12 @@ descr_amount <- as.matrix( c( mean(amount) , sd(amount), min(amount) , max(amoun
 dimnames(descr_amount)[[1]] <- list('mean','sd','min','max', 'p50' , 'p95' , 'n')
 print(descr_amount)
 rm(amount)
+
+
+full_by_year <- agrar_full %>%
+  select(year,amount,land_based,is_firm,is_capital)
+full_by_year <- as.data.frame(full_by_year)
+  
 
 ##########################
 # Yearly distribution of amounts
@@ -107,11 +119,8 @@ save_3d_chart <- function(data, bins, target_var, dataset) {
 }
 
 ###################
-# full_by_year
+# 3D charts
 ###################
-full_by_year <- agrar_full %>%
-  select(year,amount,land_based,is_firm,is_capital)
-
 save_3d_chart(full_by_year, 10, "log_avg", "all")
 save_3d_chart(full_by_year, 10, "avg", "all")
 save_3d_chart(full_by_year, 10, "sum", "all")
@@ -165,12 +174,11 @@ rm(full_by_year)
 ##############################
 sum_by_address <- agrar_full %>%
   select(year,zip,address,amount,land_based,is_firm) %>%
+  mutate(land_based = as.factor(land_based),
+         is_firm = as.factor(is_firm),
+         year = as.factor(year)) %>%
   group_by(year,zip,address,land_based,is_firm) %>%
-  summarise(amount=sum(amount)) 
-
-sum_by_address$land_based <- as.factor(sum_by_address$land_based)
-sum_by_address$is_firm <- as.factor(sum_by_address$is_firm)
-sum_by_address$year <- as.factor(sum_by_address$year)
+  summarise(amount=sum(amount))
 
 save_3d_chart(sum_by_address, 10, "avg", "summed-by-address")
 save_3d_chart(sum_by_address, 30, "avg", "summed-by-address")
@@ -178,6 +186,35 @@ save_3d_chart(sum_by_address, 10, "log_avg", "summed-by-address")
 save_3d_chart(sum_by_address, 30, "log_avg", "summed-by-address")
 save_3d_chart(sum_by_address, 10, "sum", "summed-by-address")
 save_3d_chart(sum_by_address, 30, "sum", "summed-by-address")
+
+sum_by_address_decils <- sum_by_address %>%
+  group_by(year) %>%
+  mutate(rank = ntile(amount,10)) %>%
+  mutate(rank = as.factor(rank)) %>%
+  mutate(rank = fct_reorder(rank, desc(rank))) %>%
+  group_by(year,rank) %>%
+  summarise(sum=sum(amount)) %>%
+  arrange(desc(year))
+
+ggplot(data = sum_by_address_decils, aes(x = year, y = sum/1000000000, fill = rank)) + 
+  geom_bar(stat = "identity") +
+  labs(y = "sum amount (bn HUF)") +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
+  theme(axis.text.y = element_text(angle = 90, hjust = 1)) +
+  scale_color_viridis(option = "D")+
+  theme_minimal()
+ggsave(paste0(data_out, "2d_sum_by_decils.png"))
+
+ggplot(data = sum_by_address_decils, aes(x = year, y = sum/1000000000, fill = rank)) + 
+  geom_bar(stat = "identity", position = 'fill') +
+  labs(y = "Pct of total amount") +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
+  theme(axis.text.y = element_text(angle = 90, hjust = 1)) +
+  scale_color_viridis(option = "D")+
+  theme_minimal()
+ggsave(paste0(data_out, "2d_sum_by_decils_stacked.png"))
+
+rm(sum_by_address_decils)
 rm(sum_by_address)
 
 sum_by_address_indiv <- agrar_full %>%
@@ -227,6 +264,13 @@ ggplot(data = agrar_full, aes(x = year, y = amount/1000000000, fill = is_capital
   theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
   theme_minimal()
 ggsave(paste0(data_out, "2d_sum_by_year_is_capital.png"))
+
+ggplot(data = agrar_full, aes(x = year, y = amount/1000000000, fill = source)) + 
+  geom_bar(stat = "identity") +
+  ylab("sum of total amount (bn HUF)") +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
+  theme_minimal()
+ggsave(paste0(data_out, "2d_sum_by_year_source.png"))
 
 ######################
 # stacked bar charts
