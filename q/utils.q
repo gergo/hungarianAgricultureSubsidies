@@ -111,7 +111,7 @@
   .agrar.log "raw files loaded";
 
   raw_data: update name:.agrar.fix_name'[name] from raw_data;
-  raw_data: update name_parts:{count " " vs string x}'[name] from faw_data;
+  raw_data: update name_parts:{count " " vs string x}'[name] from raw_data;
 
   raw_data: update is_firm:1b from raw_data where name_parts>5;
   .agrar.log "marking firms based on keywords";
