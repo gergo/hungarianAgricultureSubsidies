@@ -3,12 +3,12 @@
 # Hungarian Agricultural Subsidies Analysis
 # Gergo Szekely
 #
-############################################################  
+############################################################
 # Data import
 # Feature engineering
-# Regression analysis 
+# Regression analysis
 # Graph creation
-############################################################  
+############################################################
 
 # CLEAR MEMORY
 rm(list=ls())
@@ -201,17 +201,16 @@ ggplot(data = sum_by_address_decils, aes(x = year, y = sum/1000000000, fill = ra
   labs(y = "sum amount (bn HUF)") +
   theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
   theme(axis.text.y = element_text(angle = 90, hjust = 1)) +
-  scale_color_viridis(option = "D")+
-  theme_minimal()
+  theme_minimal() +
+  scale_fill_viridis(discrete=TRUE,direction=1,option = "D")
 ggsave(paste0(data_out, "2d_sum_by_decils.png"))
 
 ggplot(data = sum_by_address_decils, aes(x = year, y = sum/1000000000, fill = rank)) + 
   geom_bar(stat = "identity", position = 'fill') +
   labs(y = "Pct of total amount") +
   theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
-  theme(axis.text.y = element_text(angle = 90, hjust = 1)) +
-  scale_color_viridis(option = "D")+
-  theme_minimal()
+  theme_minimal() +
+  scale_fill_viridis(discrete=TRUE,direction=1,option = "D")
 ggsave(paste0(data_out, "2d_sum_by_decils_stacked.png"))
 
 rm(sum_by_address_decils)
