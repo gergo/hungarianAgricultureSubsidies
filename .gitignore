@@ -4,6 +4,7 @@ input/zip/*
 input/names
 input/settlements/raw/settlements.xls
 output/*
+imgs
 geocode/**/agrar_raw_*
 geocode/agrar_output*
 scripts/.ipynb_checkpoints

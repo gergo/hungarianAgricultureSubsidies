@@ -4,7 +4,13 @@
   };
 
 .ksh.process_settlements_parts_file:{[]
-  settlement_parts: ("ISFSIISIFFF";enlist",")0:`$"../input/settlements/Telepulesreszek_2019_01_01.csv";
+  settlement_parts: ("ISFSIFSIFFF";enlist",")0:`$"../input/settlements/Telepulesreszek_2019_01_01.csv";
   settlement_parts: `ksh_kod`helyseg`megye_kod`telepulesresz`telepulesresz_jelleg_kod`iranyito_szam`kulterulet_jellege`tavolsag`nepesseg`lakasok`egyeb_lakoegysegek xcol settlement_parts;
-  select sum nepesseg, sum lakasok by iranyito_szam,helyseg,ksh_kod from settlement_parts
+  settlement_parts: update iranyito_szam: "i"$iranyito_szam from settlement_parts;
+  select sum nepesseg, sum lakasok by iranyito_szam, helyseg, ksh_kod from settlement_parts
+  };
+
+.ksh.ksh_id_zip_map:{[]
+  settlement_parts: .ksh.process_settlements_parts_file[];
+  `zip xkey select distinct zip: iranyito_szam, ksh_id: ksh_kod, settlement: helyseg from settlement_parts where iranyito_szam<>0N
   };

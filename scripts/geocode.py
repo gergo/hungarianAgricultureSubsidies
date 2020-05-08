@@ -19,6 +19,8 @@ code forked from https://www.shanelynn.ie/batch-geocoding-in-python-with-google-
 test url:
 https://maps.googleapis.com/maps/api/geocode/json?address=1600+Amphitheatre+Parkway,
 +Mountain+View,+CA&key=<YOUR_API_KEY>
+
+improvement idea: make it multi-threaded as it is about 300ms/request
 """
 
 import pandas as pd

@@ -5,11 +5,23 @@ system "l ../q/utils.q";
 
 .geocode.dir: .agrar.root,"/../geocode/";
 
+.geocode.process_json_response:{[t]
+  t: update result:{.j.k ssr[;"True";"true"] ssr[;"False";"false"] ssr[;"'";"\""] string x}'[response] from t;
+  t
+  };
+
 // Load an individual csv with geo-coded addresses
 .geocode.process_files:{[]
   .agrar.log "Loading geo-coded files";
-  files: system "ls ",.geocode.dir,"DONE/agrar_output_[0-9]*.csv";
-  raze .geocode.process_file each files
+  files: system "ls ",.geocode.dir,"agrar_output_*.csv";
+  raw: raze .geocode.process_file each files;
+
+  raw: update index:i from raw;
+
+  // remove probable data errors:
+  raw: delete from raw where not formatted_address like "*Hungary";
+  raw: delete from raw where postcode<>zip;
+  raw
   };
 
 .geocode.process_file:{[f]
@@ -26,7 +38,7 @@ system "l ../q/utils.q";
 .geocode.split:{[dataset]
   unique_addresses: select distinct zip,settlement,address from dataset;
   .agrar.log "splitting unique addresses ",string[count unique_addresses]," to smaller chunks";
-  .geocode.distinct_addresses: update query: {"+" sv string x,y,z}'[zip;settlement;address] from unique_addresses;
+  .geocode.distinct_addresses: update query: {"+" sv string x,y,z}'[address;settlement;zip] from unique_addresses;
   splitTables: ([] tbls: 0N 2499 # .geocode.distinct_addresses);
   tmp: select split: .geocode.save_csv'[i;tbls] from splitTables;
   .agrar.log "csvs saved: ", string count tmp;

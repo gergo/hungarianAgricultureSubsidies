@@ -31,7 +31,8 @@ system "l ../q/create_network.q";
 
 .agrar.analyze.big_wins:{[]
   // Are there individuals and firms that share address?
-  .misc.same_addresses: (`zip`settlement`address xkey .agrar.firms) ij `zip`settlement`address xkey .agrar.ppl;
+  .misc.same_addresses: (`zip`settlement`address xkey select f_amt: sum amount by zip,settlement,address,firm:name from .agrar.firms) ij
+    `zip`settlement`address xkey select p_amt: sum amount by zip,settlement,address,person: name from .agrar.ppl;
 
   // Residents of which town won the largest amount of subsidies - order by average wins
   .misc.ppl_wins_avg: `avg_amt xdesc update avg_amt: amount%wins from select sum amount, wins: count i by settlement,
