@@ -13,7 +13,7 @@ system "l ../q/utils.q";
 // Load an individual csv with geo-coded addresses
 .geocode.process_files:{[]
   .agrar.log "Loading geo-coded files";
-  files: system "ls ",.geocode.dir,"DONE/agrar_output_*.csv";
+  files: system "ls ",.geocode.dir,"agrar_output_*.csv";
   raw: raze .geocode.process_file each files;
 
   raw: update index:i from raw;
