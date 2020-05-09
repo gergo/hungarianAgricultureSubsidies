@@ -1,6 +1,6 @@
 \p 8850
 
-system "l ../q/ksh.q";
+system "l ../q/settlements.q";
 system "l ../q/geocode.q";
 system "l ../q/utils.q";
 system "l ../q/elections.q";
@@ -63,7 +63,11 @@ system "l ../q/elections.q";
   data_full: raw_subsidies_3_with_bp_districts lj `settlement_mod xkey select distinct ksh_id,settlement_mod from .data.settlement_details;
   zip_map: 1!select zip_mod: zip,ksh_id,settlement_mod: settlement from .ksh.ksh_id_zip_map[];
   .data.full: (select from data_full where ksh_id<>0N),(select from data_full where ksh_id=0N) lj zip_map;
-  };
+
+  // settlement-level data for analysis
+  .data.settlement_stats: select distinct from delete zip,settlement_id from .data.settlement_details;
+  .data.win_by_settlements: 0! select sum amount by is_firm,land_based,year,ksh_id from .data.full;
+};
 
 if[`EXPORT=`$.z.x[0];
   .agrar.export.init[];
