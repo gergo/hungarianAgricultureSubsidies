@@ -14,3 +14,10 @@
   settlement_parts: .ksh.process_settlements_parts_file[];
   `zip xkey select distinct zip: iranyito_szam, ksh_id: ksh_kod, settlement: helyseg from settlement_parts where iranyito_szam<>0N
   };
+
+.posta.zip_map:{[]
+  raw: ("ISS";enlist",")0:`$"../input/zip_map/zip_map.csv";
+  manual: ("ISS";enlist",")0:`$"../input/zip_map/manual_zip_map.csv";
+  raw1: manual,`zip`settlement`settlement_part xcol raw;
+  delete from raw1 where settlement_part=`
+  };
