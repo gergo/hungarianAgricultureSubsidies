@@ -27,6 +27,8 @@ system "l ../q/elections.q";
   .agrar.save_csv["agrar_funds"; .data.funds];
   .agrar.save_csv["agrar_wins"; .data.wins];
   .agrar.save_csv["agrar_full"; .data.full];
+  .agrar.save_csv["settlement_stats"; .data.settlement_stats];
+  .agrar.save_csv["win_by_settlements"; .data.win_by_settlements];
   };
 
 .agrar.export.init:{[]
@@ -72,7 +74,7 @@ system "l ../q/elections.q";
     ];
 
   // settlement-level data for analysis
-  .data.settlement_stats: select distinct from delete zip,settlement_id from .data.settlement_details;
+  .data.settlement_stats: select distinct from delete zip_mod,zip,settlement_id from .data.settlement_details;
   .data.win_by_settlements: 0! select sum amount by is_firm,land_based,year,ksh_id from .data.full;
   };
 
