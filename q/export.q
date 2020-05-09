@@ -64,10 +64,17 @@ system "l ../q/elections.q";
   zip_map: 1!select zip_mod: zip,ksh_id,settlement_mod: settlement from .ksh.ksh_id_zip_map[];
   .data.full: (select from data_full where ksh_id<>0N),(select from data_full where ksh_id=0N) lj zip_map;
 
+  // assert: log if there are unmapped zip codes
+  unmapped: `amount xdesc select sum amount by year,zip,settlement_mod from .data.full where ksh_id=0N;
+  if[0< count unmapped;
+    .agrar.log["Unmapped zip codes! Check where they belong and add them to manual_zip_map.csv"];
+    show unmapped;
+    ];
+
   // settlement-level data for analysis
   .data.settlement_stats: select distinct from delete zip,settlement_id from .data.settlement_details;
   .data.win_by_settlements: 0! select sum amount by is_firm,land_based,year,ksh_id from .data.full;
-};
+  };
 
 if[`EXPORT=`$.z.x[0];
   .agrar.export.init[];
