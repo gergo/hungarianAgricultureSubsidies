@@ -6,8 +6,10 @@
 .ksh.process_settlements_parts_file:{[]
   settlement_parts: ("ISFSIFSIFFF";enlist",")0:`$"../input/settlements/Telepulesreszek_2019_01_01.csv";
   settlement_parts: `ksh_kod`helyseg`megye_kod`telepulesresz`telepulesresz_jelleg_kod`iranyito_szam`kulterulet_jellege`tavolsag`nepesseg`lakasok`egyeb_lakoegysegek xcol settlement_parts;
-  settlement_parts: update iranyito_szam: "i"$iranyito_szam from settlement_parts;
-  select sum nepesseg, sum lakasok by iranyito_szam, helyseg, ksh_kod from settlement_parts
+  parts: update iranyito_szam: "i"$iranyito_szam from settlement_parts;
+  parts1: select sum nepesseg, sum lakasok by iranyito_szam, helyseg, ksh_kod from parts;
+  // raw data has a many-to-many relationship between zip_code and ksh_id
+  select from parts1 where nepesseg = (max;nepesseg) fby ([]iranyito_szam;ksh_kod)
   };
 
 .ksh.ksh_id_zip_map:{[]
@@ -15,7 +17,8 @@
   settlement_parts: select distinct zip: iranyito_szam, ksh_id: ksh_kod, settlement: helyseg from raw_settlement_parts where iranyito_szam<>0N;
   postal_map: .posta.zip_map[];
   postal_map_with_ksh_id: postal_map lj 1! select distinct settlement,ksh_id from settlement_parts;
-  `zip xkey settlement_parts,select zip,ksh_id,settlement from postal_map_with_ksh_id
+  joined: `zip xasc `zip xkey settlement_parts,select zip,ksh_id,settlement from postal_map_with_ksh_id;
+  delete from joined where settlement like "Budapest*"
   };
 
 .posta.zip_map:{[]

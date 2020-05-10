@@ -164,10 +164,9 @@
   delete is_firm,name_parts from data
   };
 
-.agrar.create_zip_overrides:{[dataset]
-  t:([] zip_orig: exec distinct zip from dataset where string[zip] like "1*");
-  t1: update zip_mod:{ "I"$(-1 _ string[x]),"0"}'[zip_orig] from t;
-  t1[`zip_orig]!t1[`zip_mod]
+.agrar.create_bp_zip_key:{[dataset]
+  t:([] zip: exec distinct zip from dataset where string[zip] like "1*");
+  t1: update zip_key:{ "I"$(-1 _ string[x]),"0"}'[zip] from t
   };
 
 oj:{
