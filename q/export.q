@@ -37,7 +37,7 @@ system "l ../q/elections.q";
     district_code:jaras_kod, district_capital:jaras_szekhely, area:terulet, population:nepesseg, homes:lakasok,
     is_capital:{4}'[i] from .ksh.process_settlements_file[];
   county_capitals: `county xkey .ksh.county_capitals[];
-  settlements: settlements ij county_capitals;
+  settlements: settlements lj county_capitals;
 
   settlements: update is_capital:{3}'[i] from settlements where settlement=county_capital;
   settlements: update is_capital:{2}'[i] from settlements where settlement=district_capital;
