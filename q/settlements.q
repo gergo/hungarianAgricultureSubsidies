@@ -24,3 +24,7 @@
   raw1: manual,`zip`settlement`settlement_part xcol raw;
   delete from raw1 where settlement_part=`
   };
+
+.ksh.county_capitals:{[]
+  ("SS";enlist",")0:`$"../input/settlements/megyeszekhelyek.csv"
+  };

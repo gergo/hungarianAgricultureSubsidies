@@ -34,9 +34,13 @@ system "l ../q/elections.q";
 .agrar.export.init:{[]
   // load settlement data
   settlements: select settlement:helyseg, ksh_id:ksh_kod, settlement_type:tipus, county:megye, district:jaras_nev,
-    district_code:jaras_kod, county_capital:jaras_szekhely, area:terulet, population:nepesseg, homes:lakasok,
-    is_capital:{3}'[i] from .ksh.process_settlements_file[];
-  settlements: update is_capital:{2}'[i] from settlements where settlement=county_capital;
+    district_code:jaras_kod, district_capital:jaras_szekhely, area:terulet, population:nepesseg, homes:lakasok,
+    is_capital:{4}'[i] from .ksh.process_settlements_file[];
+  county_capitals: `county xkey .ksh.county_capitals[];
+  settlements: settlements ij county_capitals;
+
+  settlements: update is_capital:{3}'[i] from settlements where settlement=county_capital;
+  settlements: update is_capital:{2}'[i] from settlements where settlement=district_capital;
   settlements: update is_capital:{1}'[i] from settlements where settlement like "Budapest*";
 
   // load agricultural subsidies
