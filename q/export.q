@@ -39,8 +39,8 @@ system "l ../q/elections.q";
   county_capitals: `county xkey .ksh.county_capitals[];
   settlements: settlements lj county_capitals;
 
-  settlements: update is_capital:{3}'[i] from settlements where settlement=county_capital;
   settlements: update is_capital:{2}'[i] from settlements where settlement=district_capital;
+  settlements: update is_capital:{3}'[i] from settlements where settlement=county_capital;
   settlements: update is_capital:{1}'[i] from settlements where settlement like "Budapest*";
 
   // load agricultural subsidies
