@@ -78,6 +78,21 @@ system "l ../q/elections.q";
   .data.win_by_settlements: 0! select sum amount by is_firm,land_based,year,ksh_id from .data.full;
   };
 
+.agrar.save_name_mismatch:{[]
+  agrar_zips: select distinct zip,settlement from .data.full;
+  ksh: .ksh.process_settlements_parts_file[];
+  ksh_zips: select distinct zip:iranyito_szam,settlement:helyseg from ksh;
+  ksh_zip_list: exec distinct zip from ksh_zips;
+  agrar_zip_list: exec distinct zip from agrar_zips;
+
+  select from ksh_zips where zip in ksh_zip_list except agrar_zip_list;
+  select from agrar_zips where zip in agrar_zip_list except ksh_zip_list;
+
+  settlement_name_mismatch: (select zip, kdh_settlement:settlement from ksh_zips) ij (1! select zip,agrar_settlemnt:settlement from (agrar_zips except ksh_zips) where zip in ksh_zip_list);
+
+  .agrar.save_csv["settlement_name_mismatch";settlement_name_mismatch];
+  };
+
 if[`EXPORT=`$.z.x[0];
   .agrar.export.init[];
   .agrar.export.normalize[];
