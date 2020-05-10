@@ -1,6 +1,6 @@
 .ksh.process_settlements_file:{[]
   settlements: ("SISSSSSSSFFF";enlist",")0:`$"../input/settlements/helysegek.csv";
-  `helyseg`ksh_kod`tipus`megye`jaras_kod`jaras_nev`megyeszekhely`onkormanyzat_kod`onkormanyzat_szekhely`terulet`nepesseg`lakasok xcol settlements
+  `helyseg`ksh_kod`tipus`megye`jaras_kod`jaras_nev`jaras_szekhely`onkormanyzat_kod`onkormanyzat_szekhely`terulet`nepesseg`lakasok xcol settlements
   };
 
 .ksh.process_settlements_parts_file:{[]
