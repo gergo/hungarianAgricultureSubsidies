@@ -65,9 +65,10 @@ system "l ../q/elections.q";
 
   zips_by_settlement: select distinct zip_mod by settlement_mod from raw_subsidies_3_with_bp_districts where zip_mod<>0N;
 
+  .data.settlement_details: `ksh_id xkey distinct update settlement:settlement_mod,zip:zip_mod from ungroup (update settlement_mod:settlement from settlements) lj zips_by_settlement;
+
   // zip to ksh_id map
-  zip_map: distinct (select zip,ksh_id,settlement from budapest_districts), 0!.ksh.ksh_id_zip_map[];
-  .data.settlement_details: `ksh_id xkey distinct delete zip,zip_mod from update settlement:settlement_mod,zip:zip_mod from ungroup (update settlement_mod:settlement from settlements) lj zips_by_settlement;
+  zip_map: (distinct select distinct zip,ksh_id,settlement from .data.settlement_details),(select zip,ksh_id,settlement from budapest_districts), 0!.ksh.ksh_id_zip_map[];
   .data.settlements: zip_map lj .data.settlement_details;
 
   // add ksh_id to subsidies
@@ -76,7 +77,12 @@ system "l ../q/elections.q";
 
   // assert: log if there are unmapped zip codes
   unmapped: `amount xdesc select sum amount by year,zip,settlement_mod from .data.full where ksh_id=0N;
-  .agrar.assert[   {0<count x};   unmapped;   "Unmapped zip codes! Check where they belong and add them to manual_zip_map.csv";   "There are 0 unmapped zip codes!"];
+  .agrar.assert[
+    {0<count x};
+    unmapped;
+    "Unmapped zip codes! Check where they belong and add them to manual_zip_map.csv";
+    "There are 0 unmapped zip codes!"
+  ];
 
   // settlement-level data for analysis
   .data.settlement_stats: select distinct from delete zip_mod,zip,settlement_id from .data.settlements;
