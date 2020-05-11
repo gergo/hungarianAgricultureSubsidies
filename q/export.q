@@ -76,13 +76,7 @@ system "l ../q/elections.q";
 
   // assert: log if there are unmapped zip codes
   unmapped: `amount xdesc select sum amount by year,zip,settlement_mod from .data.full where ksh_id=0N;
-  if[0<count unmapped;
-    .agrar.log["Unmapped zip codes! Check where they belong and add them to manual_zip_map.csv"];
-    show unmapped;
-    ];
-  if[0=count unmapped;
-    .agrar.log["There are 0 unmapped zip codes!"];
-    ];
+  .agrar.assert[   {0<count x};   unmapped;   "Unmapped zip codes! Check where they belong and add them to manual_zip_map.csv";   "There are 0 unmapped zip codes!"];
 
   // settlement-level data for analysis
   .data.settlement_stats: select distinct from delete zip_mod,zip,settlement_id from .data.settlements;

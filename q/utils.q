@@ -174,3 +174,15 @@ oj:{
   lyx:(cols lxy) xcols 0!lj[y;x]; // Right join (plus remove keys and prepare cols order for union)
   (cols key x) lxy union lyx      // Union (plus retrieve keys)
   };
+
+.agrar.assert:{[testFn;input;errorMsg;successMsg]
+  $[testFn input;
+    [
+      .agrar.log[errorMsg];
+      show input;
+    ];
+    [
+      .agrar.log[successMsg];
+    ]
+  ];
+  };
