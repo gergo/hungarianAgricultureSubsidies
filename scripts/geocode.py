@@ -30,6 +30,7 @@ import time
 import sys
 import getopt
 import os
+from concurrent.futures import ThreadPoolExecutor
 
 logger = logging.getLogger("root")
 logger.setLevel(logging.DEBUG)
@@ -126,16 +127,7 @@ def process_file(input_filename, output_filename):
     results = []
     # Go through each address in turn
     for index, row in data.iterrows():
-        geocoded_result = process_row(row)
-        results.append(geocoded_result)
-
-        # Print status every 100 addresses
-        if len(results) % 100 == 0:
-            logger.info("Completed {} of {} address".format(len(results), len(data)))
-
-        # Every 500 addresses, save progress to file(in case of a failure so you have something!)
-        if len(results) % 500 == 0:
-            pd.DataFrame(results).to_csv("{}_bak".format(output_filename))
+        process_row(results, len(data), output_filename, row)
 
     # All done
     logger.info("Finished geocoding all addresses")
@@ -143,7 +135,7 @@ def process_file(input_filename, output_filename):
     pd.DataFrame(results).to_csv(output_filename, encoding='utf8', index_label='index')
 
 
-def process_row(row):
+def process_row(results, data_len, output_filename, row):
     # We know that these addresses are in Hungary, and there's a column for county, so add this for accuracy.
     # (remove this line / alter for your own dataset)
     address = row[address_column_name] + ',Hungary'
@@ -175,8 +167,17 @@ def process_row(row):
             geocode_result['settlement'] = row['settlement']
             geocode_result['address'] = row['address']
             geocode_result['query'] = row['query']
+            results.append(geocode_result)
             geocoded = True
-    return geocode_result
+
+        # Print status every 100 addresses
+        if len(results) % 100 == 0:
+            logger.info("Completed {} of {} address".format(len(results), data_len))
+
+        # Every 500 addresses, save progress to file(in case of a failure so you have something!)
+        if len(results) % 500 == 0:
+            pd.DataFrame(results).to_csv("{}_bak".format(output_filename))
+
 
 def test_api():
     test_result = get_google_results("London, England", API_KEY, RETURN_FULL_RESULTS)
