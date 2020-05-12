@@ -116,7 +116,10 @@
   files: system "ls ",.agrar.input, "utf8_*csv";
   data_2010: .agrar.process_2010_file[];
   raw_data: data_2010, raze .agrar.process_file each files;
-  .agrar.log "raw files loaded";
+  .agrar.log "raw files loaded   - ", string count raw_data;
+
+  raw_data: delete from raw_data where amount<0;
+  .agrar.log "<0 amounts dropped - ", string count raw_data;
 
   raw_data: update name:.agrar.fix_name'[name] from raw_data;
   raw_data: update name_parts:{count " " vs string x}'[name] from raw_data;
