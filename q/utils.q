@@ -91,6 +91,13 @@
   t
   };
 
+.agrar.process_2010_file:{
+  .agrar.log "  processing raw data for 2010";
+  t: ("SISSSSSJJS";enlist",")0:`$.agrar.input, "2010.csv";
+  t: `name`zip`settlement`address`reason`program`source`amount`total_amount`year xcol t;
+  delete total_amount from t
+  };
+
 .agrar.capitalize:{[word]
   (upper 1 # word),lower 1 _ word
   };
@@ -107,7 +114,8 @@
   if[.agrar.raw_loaded;:.agrar.raw];
   .agrar.log "loading raw CSVs";
   files: system "ls ",.agrar.input, "utf8_*csv";
-  raw_data: raze .agrar.process_file each files;
+  data_2010: .agrar.process_2010_file[];
+  raw_data: data_2010, raze .agrar.process_file each files;
   .agrar.log "raw files loaded";
 
   raw_data: update name:.agrar.fix_name'[name] from raw_data;
