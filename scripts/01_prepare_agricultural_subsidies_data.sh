@@ -13,6 +13,9 @@ done
 # unzip files
 mkdir -p ../input/csv
 
+# 2010 data is part of the project as it is no longer available for download
+unzip ../input/zip/utf8_2010.csv.zip -d ../input/csv/
+
 for file in "../input/zip/"*
 do
   f="$(basename -- "${file}")"
