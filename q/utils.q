@@ -93,7 +93,7 @@
 
 .agrar.process_2010_file:{
   .agrar.log "  processing raw data for 2010";
-  t: ("SISSSSSJJS";enlist",")0:`$.agrar.input, "2010.csv";
+  t: ("SISSSSSJJS";enlist",")0:`$.agrar.input, "old_2010.csv";
   t: `name`zip`settlement`address`reason`program`source`amount`total_amount`year xcol t;
   delete total_amount from t
   };

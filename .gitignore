@@ -1,7 +1,7 @@
 .idea
 input/csv/*
 input/zip/*
-!input/zip/2010.csv.zip
+!input/zip/old_2010.csv.zip
 input/names
 input/settlements/raw/settlements.xls
 output/*
