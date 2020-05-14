@@ -121,12 +121,12 @@ save_3d_chart <- function(data, bins, target_var, dataset) {
   
   hist3D(x = 1:bins, y = 1:years, z = chart_data,
          bty = "g", phi = 20, theta = -60,
-         main = paste0(dataset, " - ", bins, " - ", target_var, " bins (HUF mm)"),
+         main = paste0(dataset, " - ", bins, " bins - ", target_var, " (HUF mm)"),
          xlab = "bins", ylab = "years", zlab = target_var,
          border = "black", shade = 0.3, expand = 0.9, contour = TRUE,
          col=ramp.col(c("blue", "yellow", "red")),
          space = 0.25, d = 3,
-         colkey = list(side = 4, length = 0.6, width = 0.5, dist = -0.1),
+         colkey = list(side = 4, length = 0.6, width = 0.5, dist = -0.04),
          axes = TRUE
          )
   
