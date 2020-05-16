@@ -124,7 +124,7 @@
   raw_data: update name:.agrar.fix_name'[name] from raw_data;
   raw_data: update name_parts:{count " " vs string x}'[name] from raw_data;
 
-  raw_data: update is_firm:1b from raw_data where name_parts>5;
+  raw_data: update is_firm:1b from raw_data where name_parts>8;
   .agrar.log "marking firms based on keywords";
   firm_keywords: {"*",x,"*"} each upper ("BT";"KFT";"Alapítvány";"Egyesület";"ZRT";"VÁLLALAT";"Iroda";"Önkormányzat";
     "Község";"Társulat";"Szövetkezet";"Asztaltársaság";"Vadásztársaság";"Intézmény";"Társulás";"Közösség";"Központ";
