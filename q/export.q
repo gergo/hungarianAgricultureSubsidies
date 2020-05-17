@@ -34,14 +34,14 @@ system "l ../q/elections.q";
 .agrar.export.init:{[]
   // load settlement data
   settlements: select settlement:helyseg, ksh_id:ksh_kod, settlement_type:tipus, county:megye, district:jaras_nev,
-    district_code:jaras_kod, district_capital:jaras_szekhely, area:terulet, population:nepesseg, homes:lakasok,
-    is_capital:{4}'[i] from .ksh.process_settlements_file[];
+    district_code:jaras_kod, district_capital:jaras_szekhely, area:terulet, population:nepesseg, homes:lakasok from .ksh.process_settlements_file[];
   county_capitals: `county xkey .ksh.county_capitals[];
   settlements: settlements lj county_capitals;
 
-  settlements: update is_capital:{3}'[i] from settlements where settlement=district_capital;
-  settlements: update is_capital:{2}'[i] from settlements where settlement=county_capital;
-  settlements: update is_capital:{1}'[i] from settlements where settlement like "Budapest*";
+  settlements: update settlement_type:`$"járás székhely" from settlements where settlement=district_capital;
+  settlements: update settlement_type:`$"megyeszékhely" from settlements where settlement=`$"megyeszékhely, megyei jogú város";
+  settlements: update settlement_type:`$"megyeszékhely" from settlements where settlement=county_capital;
+  settlements: update settlement_type:`$"Budapest"  from settlements where settlement like "Budapest*";
   settlements: delete from settlements where settlement=`Budapest;
 
   // load agricultural subsidies
@@ -107,6 +107,6 @@ system "l ../q/elections.q";
 if[`EXPORT=`$.z.x[0];
   .agrar.export.init[];
   .agrar.export.normalize[];
-  // .agrar.export.save[];
+  .agrar.export.save[];
   ];
 
