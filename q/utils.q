@@ -133,16 +133,9 @@
 
   raw_data: update is_firm:1b from raw_data where name_parts>8;
   .agrar.log "marking firms based on keywords";
-  firm_keywords: {"*",x,"*"} each upper ("BT";"KFT";"Alapítvány";"Egyesület";"ZRT";"VÁLLALAT";"Iroda";"Önkormányzat";
-    "Község";"Társulat";"Szövetkezet";"Asztaltársaság";"Vadásztársaság";"Intézmény";"Társulás";"Közösség";"Központ";
-    "Társaság";"szolgálat";"Plébánia";"Szervezet";"Szövetség";"Sportklub";"Igazgatóság";"Intézet";"Klub";"Minisztérium";
-    "Baráti köre";"llamkincst";"Egyetem";"hivatal";"Zöldség-Gyümölcs";"Kfc";"Tsz";"birtok";"Pincészet";"Egyéni cég";
-    "Kkt.";"Baráti Kör"; "Egyesülés";"Gazdakör";"Olvasókör";"Club";"Társegyház";"Szerzetesrend";"Egyház";"Lelkészség";
-    "Gazdaság";"Rt.";"Gyülekezet";"Erdőszöv";"Lovas Kör";"Ipartestület";"Nőegylet";"Polgárőrség";"Vadászegylet";
-    "Fióktelepe";"Baromfi";"Hegypásztor Kör";"és vidéke";"TÉSZ";"Sport Kör";"Nővérek";"Sportkör";"Egylet";"Iskola";
-    "Erdőgazdálkodás";"Faiskola";"Kórház";"Múzeum";"Zarándokház";"Olvsdó kör";"Agrárkamara";"Agrár kamara";"Állami";
-    "GAMESZ";"Testület";"Apostoli Exarchátus";"Parókia";"Gondnokság";"Szakképzési";"barátok Kör";" Megyei ";
-    "Testgyakorlók Kör";"Megyei Jogú";"Városgondnoksága");
+  raw_firm_keywords: read0 hsym `$"../input/names/firm_keywords.txt";
+  firm_keywords: {"*",x,"*"} each upper raw_firm_keywords;
+
   // keyword-based matching is quite slow so only run on rows we have not categorized yet
   known_firms: select from raw_data where is_firm;
   raw_data: delete from raw_data where is_firm;
