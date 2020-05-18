@@ -103,11 +103,15 @@
   };
 
 .agrar.remove_whitespace:{[word]
-  ssr[string[word];"  ";" "]
-  }
+  ssr[word;"  ";" "]
+  };
+
+.agrar.remove_dots:{[word]
+  ssr[word;".";""]
+  };
 
 .agrar.fix_name:{[nm]
-  `$ " " sv .agrar.capitalize each " " vs .agrar.remove_whitespace nm
+  `$ " " sv .agrar.capitalize each " " vs .agrar.remove_whitespace .agrar.remove_dots string nm
   };
 
 .agrar.load_csvs:{[]
@@ -121,7 +125,10 @@
   raw_data: delete from raw_data where amount<0;
   .agrar.log "<0 amounts dropped - ", string count raw_data;
 
+  .agrar.log "unique names: ", string count select distinct name from raw_data;
   raw_data: update name:.agrar.fix_name'[name] from raw_data;
+  .agrar.log "Trivial name errors fixed; unique names: ", string count select distinct name from raw_data;
+
   raw_data: update name_parts:{count " " vs string x}'[name] from raw_data;
 
   raw_data: update is_firm:1b from raw_data where name_parts>8;
