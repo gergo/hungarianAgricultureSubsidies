@@ -1,7 +1,10 @@
 ---
 title: "Investigating Hungarian Agricultural Subsidies Data"
+subtitle: "CEU Business Analytics MSc"
 author: "Gergo Szekely"
 date: "2020 May"
+fig_height: 7
+urlcolor: blue
 output:
   pdf_document:
     fig_height: 3.1
@@ -11,7 +14,6 @@ output:
   html_document:
     df_print: paged
   word_document: default
-subtutle: CEU Business Analytics MSc
 header-includes: \usepackage{dcolumn} \usepackage{float} \floatplacement{figure}{H}
 ---
 
@@ -19,6 +21,7 @@ header-includes: \usepackage{dcolumn} \usepackage{float} \floatplacement{figure}
 ```{r setup, include=FALSE, echo = FALSE, message = FALSE, warning = FALSE}
 knitr::opts_chunk$set(echo = FALSE, message = FALSE, warning = FALSE, fig.pos = 'H')
 rm(list = ls())
+sink("/dev/null")
 
 list.of.packages <-c("tidyverse",
                      "ggplot2",
@@ -45,7 +48,19 @@ agrar_wins <- readr::read_csv(paste0(data_in, "agrar_wins.csv"))
 agrar_wins$winner_id <- as.integer(agrar_wins$winner_id)
 agrar_wins$fund_id <- as.integer(agrar_wins$fund_id)
 
-agrar_winners <- readr::read_csv(paste0(data_in, "agrar_winners.csv"))
+agrar_winners <- readr::read_csv(paste0(data_in, "agrar_winners.csv"),
+                                   col_types = cols(
+                                     name = col_character(),
+                                      gender = col_character(),
+                                      address = col_character(),
+                                      formatted_address = col_character(),
+                                      is_firm = col_double(),
+                                      latitude = col_double(),
+                                      longitude = col_double(),
+                                      settlement_id = col_double(),
+                                      winner_id = col_double()
+                                     )
+                                 )
 agrar_winners$settlement_id <- as.integer(agrar_winners$settlement_id)
 agrar_winners$winner_id <- as.integer(agrar_winners$winner_id)
 
@@ -57,11 +72,10 @@ agrar_wins$year <- as.factor(agrar_wins$year)
 agrar_funds$reason <- as.factor(agrar_funds$reason)
 agrar_funds$program <- as.factor(agrar_funds$program)
 agrar_funds$source <- as.factor(agrar_funds$source)
-agrar_settlements$settlement_type <- as.factor(agrar_settlements$settlement_type)
+agrar_settlements$settlement_type <- factor(agrar_settlements$settlement_type,                                     ordered = TRUE, levels = c("Budapest","megyeszékhely","járás székhely","város","nagyközség","község"))
 agrar_winners$is_firm <- as.factor(agrar_winners$is_firm)
 agrar_winners$gender <- as.factor(agrar_winners$gender)
 agrar_settlements$settlement_type <- as.factor(agrar_settlements$settlement_type)
-
 
 agrar_full <- agrar_wins %>%
   inner_join(agrar_winners, by = "winner_id") %>%
@@ -99,9 +113,13 @@ full_by_year <- as.data.frame(full_by_year)
 distinct_years <- full_by_year %>%
   select(year) %>%
   distinct()
+years <- dim(distinct_years)[1]
 
+```
+
+```{r include=FALSE, echo = FALSE, message = FALSE, warning = FALSE}
+# helper functions
 save_3d_chart <- function(data, bins, target_var, dataset) {
-  years <- dim(distinct_years)[1]
 
   chart_data <- data %>%
     group_by(year) %>%
@@ -118,31 +136,35 @@ save_3d_chart <- function(data, bins, target_var, dataset) {
     column_to_rownames(var = "rank") %>%
     as.matrix()
   
-  chart <- hist3D(x = 1:bins, y = 1:years, z = chart_data,
+  hist3D(x = 1:bins, y = 1:years, z = chart_data,
          bty = "g", phi = 20, theta = -60,
-         main = paste0(dataset, " - ", bins, " bins - ", target_var, " (HUF mm)"),
+         main = paste0(target_var, " (HUF mm)"),
          xlab = "bins", ylab = "years", zlab = target_var,
          border = "black", shade = 0.3, expand = 0.9, contour = TRUE,
          col=ramp.col(c("blue", "yellow", "red")),
          space = 0.25, d = 3,
-         colkey = list(side = 4, length = 0.6, width = 0.5, dist = -0.04),
-         axes = TRUE
+         colkey = list(side = 4, length = 0.6, width = 0.5, dist = -0.04)
          )
   
   # save image
   png(filename=paste0(data_out, "3d_",dataset,"_",target_var,"_",bins,".png"))
   plotdev()
   dev.off()
-  chart
 }
 
+pagebreak <- function() {
+  if (knitr::is_latex_output())
+    return("\\newpage")
+  else
+    return('<div style="page-break-before: always;" />')
+}
 ```
 
 # Problem Definition
 
-Agricultural subsidies represent a huge section of the European Union's budget. The way this money is distributed is often inefficient and sometimes fraudulent as covered thoroughly by the [New York Times](https://www.nytimes.com/hu/2019/11/03/world/europe/eu-agrar-tamogatas-magyarorszag.html) and various Hungarian news sites ([here](https://index.hu/belfold/2016/04/15/igy_nez_ki_felcsut_kornyeke_bevasaroltak_orbanek_baratai/), [here](https://k.blog.hu/2016/04/15/agrar2015) or [here](https://index.hu/gazdasag/2016/07/28/en_onoknel_ki_a_helyi_oliharga/)). The amount of money distributed to Hungarian farmers is 1.5-2% of the country's GDP so it's understandable that many people want to get a share of it. Very limited analysis has been done on this data except for some high-level statistics and targeted investigations for high-profile actors. By analyzing the data, we could find interesting patterns about how this money is distributed.
+Agricultural subsidies represent a huge section of the European Union's budget. The way this money is distributed is often inefficient and sometimes fraudulent as covered thoroughly by the [New York Times](https://www.nytimes.com/hu/2019/11/03/world/europe/eu-agrar-tamogatas-magyarorszag.html) and various Hungarian news sites ([here](https://index.hu/belfold/2016/04/15/igy_nez_ki_felcsut_kornyeke_bevasaroltak_orbanek_baratai/), [here](https://k.blog.hu/2016/04/15/agrar2015) or [here](https://index.hu/gazdasag/2016/07/28/en_onoknel_ki_a_helyi_oliharga/)). The amount of money distributed to Hungarian farmers is 1.5-2% of the country's GDP so it's no surprise that many people want to get a share of it. By analyzing the data, we could find interesting patterns about how this money is distributed.
 
-Below are some charts to show how the total amount of agricultural subsidies is funded by the EU and the Hungarian government.
+Below are charts to show the proportion of subsidies funded by the EU and the Hungarian government.
 
 ```{r dodge-st, fig.show = "hold", out.width = "50%"}
 ggplot(data = sum_by_dummies, aes(x = year, y = amount/1000000000, fill = source)) + 
@@ -155,48 +177,64 @@ ggsave(paste0(data_out, "2d_sum_source.png"))
 
 ggplot(data = sum_by_dummies, aes(x = year, y = amount/1000000000, fill = source)) + 
   geom_bar(stat = "identity", position = 'fill') +
-  ylab("sum of total amount (bn HUF)") +
+  ylab("Proportion of total amount") +
   theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
   theme_minimal() +
   scale_fill_viridis(discrete=TRUE,direction=1,option = "D")
 ggsave(paste0(data_out, "2d_sum_source_stacked.png"))
 ```
 
-The data is freely available on the website of the [Hungarian Treasury](https://www.mvh.allamkincstar.gov.hu/kozzeteteli-listak1) but it's difficult to work with. Similarly to other datasets made public by government agencies, this is difficult to work with for various reasons. To hide the true nature of their activities, state actors often comply with their own laws only to a minimal extent. In most cases they will make public whatever they are legally required to do so, but they will also make it hard to work with. Another important reason for the badness of the data is that state agencies don’t represent an attractive workplace for highly skilled workers. As a result, government agencies simply lack the talent to make great, public datasets. Cleaning and enriching the dataset would allow investigative journalists, non-profits or curious citizens to learn about this domain. This paper covers the initial efforts to solve this problem. The data transformation and analysis scripts are all publicly available on a [GitHub repository](https://github.com/gergo/hungarianAgricultureSubsidies).
+The data is freely available on the website of the [Hungarian Treasury](https://www.mvh.allamkincstar.gov.hu/kozzeteteli-listak1) but it's difficult to work with. Most of the money comes from the EU so simply tampering with the data is not an option because it would be easy to spot this. Very limited analysis has been done on this data except for some high-level statistics and targeted investigations for high-profile actors but even that shows that the numbers are quite accurate. Similarly to other datasets made public by government agencies, this one is difficult to work with for various reasons. To hide the true nature of their activities, state actors often comply with their own laws only to a minimal extent. In most cases they will make public whatever they are legally required to do so, but they are not motivated to make it easy to work with. Another important reason for the badness of the data is that state agencies don’t represent an attractive workplace for highly skilled workers. As a result, government agencies simply lack the talent to make great, public datasets. Cleaning and enriching the dataset would allow investigative journalists, non-profits or curious citizens to learn about this domain. This paper covers the initial efforts to solve this problem. The data transformation and analysis scripts are all publicly available on [GitHub](https://github.com/gergo/hungarianAgricultureSubsidies).
 
-# Data Pre-Processing
+`r pagebreak()`
+# Data Processing Pipeline
 
-The raw dataset is available from 2010. The source website provides a web-based search interface and links to download yearly batches in a zipped csv. The website has direct links to the datasets from the past 5 years but based on the patterns I could figure out how to download earlier batches. The raw files are quite large:
+The data has to go through a cleaning and transformation pipeline for various error corrections and enhancements to be applied. There are other, freely available datasets (e.g.: socio-economic, elections) that can be merged with the agricultural subsidies data to provide a wide range of descriptive variables. To eliminate redundancies and make the dataset more compact we can normalize it by extracting various aspects of the data.
+
+When creating the data engineering pipeline the aim was to make it as automatic as possible. Anyone who has the project checked out from the [GitHub repository](https://github.com/gergo/hungarianAgricultureSubsidies) and has the runtime dependencies in place should be able to build the project from scratch. Data processing and analysis can be performed on a personal computer using open-source or free tools.
+
+## Runtime dependencies
+- **bash**: The various data sources can be downloaded and processed by executing a handful of shell scripts. For this a unix environment wiht bash is required.
+- **KDB**: To efficiently process the raw data and merge it with other datasets I use a programming language called q that comes with an in-memory database solution called KDB. It's free to [download](https://kx.com/connect-with-us/download/).
+- **Python 3**: The project contains a script to call the Google Maps API to geocode addresses. This creates a standardized format for the addresses and also adds latitude and longitude coordinates to the addresses of the beneficiaries.
+- **R**: The data analysis is done in R so an [R runtime](https://www.r-project.org/) is also needed.
+
+## Downlad raw data
+
+The raw dataset is available from 2011 on the website of the [Hungarian Treasury](https://www.mvh.allamkincstar.gov.hu/kozzeteteli-listak1). The site provides an on-line search interface and links to compressed csv files that contain yearly batches of subsidies. The website has direct links to the datasets from the past 5 years but based on the patterns it is not difficult to figure out how to download earlier batches. Data for 2010 used to be available on the site but the link no longer works so I added that as part of the project and adjusted the download scripts to handle that differently. The raw files are quite large:
 
 ```{bash}
-ls -lh ../input/csv/*.csv | awk '{print $5,$9}'
+ls -lh ../input/csv/*.csv | awk '{print $5,$9}' | paste - -
 ```
 
-After converting the data to UTF8 the contents look like this:
+## Fix character encoding
+
+The original files are in ISO-8859-2 encoding (aka. Latin-2). After converting the data to UTF8 the contents look like this:
 
 ```{bash}
+# most rows are long; to make the sample fit to the generated document I filter for rows with <100 characters
 cat ../input/csv/utf8_2011.csv | head -n1000 | awk 'length($0) < 100' | head -n6
 ```
 
-The data is now in a format that programming languages can deal with it.
+The data is now in a format that programming languages can deal with.
 
-# Data Engineering
-
-The data has to go through a cleaning and transformation pipeline for various error corrections and enhancements to be applied. There are other, freely available datasets (e.g.: socio-economic, elections) that can be merged with the agricultural subsidies data to provide a wide range of descriptive variables. To reduce redundancies and make the dataset more compact we can normalize it by extracting various aspects of the data.
-
-When creating the data engineering pipeline I tried to make it as automatic as possible. Anyone who has the project checked out from the [GitHub repository](https://github.com/gergo/hungarianAgricultureSubsidies) and has the runtime dependencies installed should be able to build the project from scratch. Data processing and analysis can be performed on a personal computer using open-source or free tools.
-
-## Runtime dependencies
-unix
-KDB
-python
-R
-
-## Downlad raw data
-## Fix character encoding
 ## Basic data cleaning
+During exploratory data analysis I found multiple versions of the same entity. Fixing this is important if we want to get an accurate view on at aggregate subsidies by beneficiaries.
+ - *White spaces*:  Some names contained multiple spaces instead of a single space when separating name parts. I replaced all whitespace group with a single space in the names.
+ - *Character cases*: Some names had multiple versions with inconsistent capitalizations (eg. all caps) so I split names by spaces and capitalized only the first character in each name part.
+ - *Remove dots*: Some names had multiple variations based on how abbreviations in their name parts were written: some had '.', other rows did not.
+
+The above steps reduced the unique number of entities from 249087 to 248245.
+
 ## Find firms
-Firms and individuals are not separated in the data. I made the initial assumption that any name that has 6 or more name parts is a firm. For names that have 5 or fewer name parts I identified a large number of keywords that indicate that the beneficiari is not an individual. These are not just firms but churches, municipalities, clubs and all sorts of other organizations but for simplicity I call these firms. The proportion of subsidies received by firms and individuals can be seen in the below charts.
+
+Firms and individuals are not separated in the data. I made the initial assumption that any name that has 8 or more name parts is a firm. For names that have 8 or fewer name parts I identified a large number of keywords that indicate that the beneficiari is not an individual. These are not just firms but churches, municipalities, clubs and all sorts of other organizations but for simplicity I call these firms.
+
+```{bash}
+paste -s -d";" ../input/names/firm_keywords.txt
+```
+
+The proportion of subsidies received by firms and individuals can be seen in the below charts.
 
 ```{r fig.show = "hold", out.width = "50%"}
 ggplot(data = sum_by_dummies, aes(x = year, y = amount/1000000000, fill = is_firm)) + 
@@ -209,7 +247,7 @@ ggsave(paste0(data_out, "2d_sum_isfirm.png"))
 
 ggplot(data = sum_by_dummies, aes(x = year, y = amount/1000000000, fill = is_firm)) + 
   geom_bar(stat = "identity", position = 'fill') +
-  labs(y = "sum amount (bn HUF)") +
+  labs(y = "Proportion by group") +
   theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
   theme_minimal() +
   scale_fill_viridis(discrete=TRUE,direction=1,option = "D")
@@ -239,7 +277,7 @@ ggsave(paste0(data_out, "2d_sum_by_gender.png"))
 
 ggplot(data = by_gender, aes(x = year, y = amount/1000000000, fill = gender)) + 
   geom_bar(stat = "identity", position = "fill") +
-  ylab("percent of total amount") +
+  ylab("Proportion of total amount") +
   theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
   theme_minimal() +
   scale_fill_viridis(discrete=TRUE,direction=1,option = "D")
@@ -253,9 +291,10 @@ Zip codes, settlement parts, county capitals, ksh_id and basic stats from ksh (h
 Some missing zip codes using Hungarian Postal Service (https://www.posta.hu/static/internet/download/Iranyitoszam-Internet_uj.xlsx)
 Clean Addresses
 330 000 unique addresses with typos, formatting differences.
-use Google Maps API geocoding Api to standardize addresses and get latitude/longitude coordinates https://maps.googleapis.com/maps/api/geocode/ 
+use [Google Maps Geocoding Api](https://maps.googleapis.com/maps/api/geocode/) to standardize addresses and get latitude/longitude coordinates  
 Manual mapping files
 
+`r pagebreak()`
 # Data Exploration
 
 Let's see how subsidies are distributed among settlement types. It is important to note that the address is the official address of the firm or individual who received the money, not the address of the land, for which the money was given. Most of the actual land belongs to villages and small towns but the proporion of the subsidies received by entities who are based in the country capital or county capitals is quite significant.
@@ -271,7 +310,7 @@ ggsave(paste0(data_out, "2d_sum_settlement_type.png"))
 
 ggplot(data = sum_by_dummies, aes(x = year, y = amount/1000000000, fill = settlement_type)) + 
   geom_bar(stat = "identity", position = 'fill') +
-  labs(y = "sum amount (bn HUF)") +
+  labs(y = "Proportion of subsidies") +
   theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
   theme_minimal() +
   scale_fill_viridis(discrete=TRUE,direction=1,option = "D")
@@ -281,13 +320,14 @@ ggsave(paste0(data_out, "2d_sum_settlement_type_stacked.png"))
 ```{r include=FALSE}
 stat_controls <- tableby.control(
   test = FALSE,
-  total = TRUE,
-  numeric.stats = c("meansd", "medianq1q3", "range"),
+  total = FALSE,
+  numeric.stats = c("meansd", "q1q3", "medianq1q3", "range"),
   cat.stats = c("countpct"),
   stats.labels = list(
     N='Count',
     meansd = "Mean (SD)",
     medianq1q3 = "Median (Q1, Q3)",
+    q1q3 = "Q1, Q3",
     range = "Min - Max"
   )
 )
@@ -298,14 +338,31 @@ full_stat_table <- tableby(year ~ .,
                        mutate(amount = amount / 1000),
                      control = stat_controls)
 
+by_address_data <- sum_by_address %>%
+                    ungroup() %>%
+                    select(year,amount) %>%
+                    mutate(amount = amount / 1000)
+
 by_address_stat_table <- tableby(year ~ .,
-                     data = sum_by_address %>%
-                       select(year,amount) %>%
-                       mutate(amount = amount / 1000),
-                     control = stat_controls)
+                       data = by_address_data,
+                        control = stat_controls)
+rm(by_address_data)
 ```
 
 Let's see some descriptive statistics of the whole dataset.
+
+```{r}
+##########################
+amount <- agrar_full$amount
+# Save the mean, sd, min, max, quantiles of won amounts
+descr_amount <- as.matrix( c( mean(amount) , sd(amount), min(amount) , max(amount) , quantile(amount,.50), quantile(amount,.95) , length(amount) ) )
+# Name the dimensions as a list to have neat output 
+dimnames(descr_amount)[[1]] <- list('mean','sd','min','max', 'p50' , 'p95' , 'n')
+print(descr_amount)
+rm(amount)
+
+
+```
 
 ```{r results="asis"}
 summary(full_stat_table,
@@ -315,15 +372,20 @@ summary(full_stat_table,
 
 ```{r results="asis"}
 summary(by_address_stat_table,
-        title = "Yearly statistics of agricultural subsidies summed by beneficiaries (1000s HUF)",
+        title = "Agricultural subsidies summed by beneficiaries (1000s HUF)",
         digits=0, digits.p=0, digits.pct=0,digits.n=NA)
 ```
 
 Let's see the average amounts by decil for each year.
 
-```{r fig.show = "hold", out.width = "50%"}
+```{r fig.show = "hold", out.width = "50%", echo=FALSE, results='hide', fig.height=6}
 save_3d_chart(full_by_year, 10, "log_avg", "all_yearly")
 save_3d_chart(full_by_year, 10, "avg", "all_yearly")
+```
+
+```{r fig.show = "hold", out.width = "50%", echo=FALSE, results='hide', fig.height=6}
+save_3d_chart(full_by_year, 10, "log_sum", "all_yearly")
+save_3d_chart(full_by_year, 10, "sum", "all_yearly")
 ```
 # Modeling
 
