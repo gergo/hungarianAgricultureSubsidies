@@ -11,8 +11,11 @@ output:
     fig_width: 5.1
     keep_tex: yes
     number_sections: yes
+    toc: true
   html_document:
     df_print: paged
+    toc: true
+    theme: united
   word_document: default
 header-includes: \usepackage{dcolumn} \usepackage{float} \floatplacement{figure}{H}
 ---
@@ -297,25 +300,7 @@ Manual mapping files
 `r pagebreak()`
 # Data Exploration
 
-Let's see how subsidies are distributed among settlement types. It is important to note that the address is the official address of the firm or individual who received the money, not the address of the land, for which the money was given. Most of the actual land belongs to villages and small towns but the proporion of the subsidies received by entities who are based in the country capital or county capitals is quite significant.
-
-```{r fig.show = "hold", out.width = "50%"}
-ggplot(data = sum_by_dummies, aes(x = year, y = amount/1000000000, fill = settlement_type)) + 
-  geom_bar(stat = "identity") +
-  labs(y = "sum amount (bn HUF)") +
-  theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
-  theme_minimal() +
-  scale_fill_viridis(discrete=TRUE,direction=1,option = "D")
-ggsave(paste0(data_out, "2d_sum_settlement_type.png"))
-
-ggplot(data = sum_by_dummies, aes(x = year, y = amount/1000000000, fill = settlement_type)) + 
-  geom_bar(stat = "identity", position = 'fill') +
-  labs(y = "Proportion of subsidies") +
-  theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
-  theme_minimal() +
-  scale_fill_viridis(discrete=TRUE,direction=1,option = "D")
-ggsave(paste0(data_out, "2d_sum_settlement_type_stacked.png"))
-```
+## Descriptive Stats
 
 ```{r include=FALSE}
 stat_controls <- tableby.control(
@@ -376,6 +361,29 @@ summary(by_address_stat_table,
         digits=0, digits.p=0, digits.pct=0,digits.n=NA)
 ```
 
+
+## Settlement type
+
+Let's see how subsidies are distributed among settlement types. It is important to note that the address is the official address of the firm or individual who received the money, not the address of the land, for which the money was given. Most of the actual land belongs to villages and small towns but the proporion of the subsidies received by entities who are based in the country capital or county capitals is quite significant.
+
+```{r fig.show = "hold", out.width = "50%"}
+ggplot(data = sum_by_dummies, aes(x = year, y = amount/1000000000, fill = settlement_type)) + 
+  geom_bar(stat = "identity") +
+  labs(y = "sum amount (bn HUF)") +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
+  theme_minimal() +
+  scale_fill_viridis(discrete=TRUE,direction=1,option = "D")
+ggsave(paste0(data_out, "2d_sum_settlement_type.png"))
+
+ggplot(data = sum_by_dummies, aes(x = year, y = amount/1000000000, fill = settlement_type)) + 
+  geom_bar(stat = "identity", position = 'fill') +
+  labs(y = "Proportion of subsidies") +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
+  theme_minimal() +
+  scale_fill_viridis(discrete=TRUE,direction=1,option = "D")
+ggsave(paste0(data_out, "2d_sum_settlement_type_stacked.png"))
+```
+
 Let's see the average amounts by decil for each year.
 
 ```{r fig.show = "hold", out.width = "50%", echo=FALSE, results='hide', fig.height=6}
@@ -387,6 +395,245 @@ save_3d_chart(full_by_year, 10, "avg", "all_yearly")
 save_3d_chart(full_by_year, 10, "log_sum", "all_yearly")
 save_3d_chart(full_by_year, 10, "sum", "all_yearly")
 ```
+
+
+## Overall distribution
+
+```{r include=FALSE}
+sum_by_address <- agrar_full %>%
+  select(year,zip,address,amount) %>%
+  mutate(year = as.factor(year)) %>%
+  group_by(year,zip,address) %>%
+  summarise(amount=sum(amount))
+
+sum_by_address_decils <- sum_by_address %>%
+  group_by(year) %>%
+  mutate(rank = ntile(amount,10)) %>%
+  mutate(rank = as.factor(rank)) %>%
+  mutate(rank = fct_reorder(rank, desc(rank))) %>%
+  group_by(year,rank) %>%
+  summarise(sum=sum(amount)) %>%
+  arrange(desc(year))
+```
+
+```{r fig.show = "hold", out.width = "50%", echo=FALSE, results='hide', fig.height=6}
+save_3d_chart(sum_by_address, 10, "avg", "summed-by-address")
+save_3d_chart(sum_by_address, 10, "log_avg", "summed-by-address")
+```
+
+```{r fig.show = "hold", out.width = "50%", echo=FALSE, results='hide', fig.height=6}
+save_3d_chart(sum_by_address, 30, "avg", "summed-by-address")
+save_3d_chart(sum_by_address, 30, "log_avg", "summed-by-address")
+```
+
+```{r fig.show = "hold", out.width = "50%", echo=FALSE, results='hide', fig.height=6}
+save_3d_chart(sum_by_address, 10, "sum", "summed-by-address")
+save_3d_chart(sum_by_address, 10, "log_sum", "summed-by-address")
+```
+
+```{r fig.show = "hold", out.width = "50%", echo=FALSE, results='hide', fig.height=6}
+save_3d_chart(sum_by_address, 30, "sum", "summed-by-address")
+save_3d_chart(sum_by_address, 30, "log_sum", "summed-by-address")
+```
+
+
+```{r fig.show = "hold", out.width = "50%"}
+ggplot(data = sum_by_address_decils, aes(x = year, y = sum/1000000000, fill = rank)) + 
+  geom_bar(stat = "identity") +
+  labs(y = "sum amount (HUF bn)") +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
+  theme(axis.text.y = element_text(angle = 90, hjust = 1)) +
+  theme_minimal() +
+  scale_fill_viridis(discrete=TRUE,direction=1,option = "D")
+ggsave(paste0(data_out, "2d_sum_by_decils.png"))
+
+ggplot(data = sum_by_address_decils, aes(x = year, y = sum/1000000000, fill = rank)) + 
+  geom_bar(stat = "identity", position = 'fill') +
+  labs(y = "Pct of total amount") +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
+  theme_minimal() +
+  scale_fill_viridis(discrete=TRUE,direction=1,option = "D")
+ggsave(paste0(data_out, "2d_sum_by_decils_stacked.png"))
+```
+
+
+```{r include=FALSE}
+rm(sum_by_address_decils)
+rm(sum_by_address)
+```
+
+## Overall distribution
+
+```{r include=FALSE}
+sum_by_address_indiv <- agrar_full %>%
+  filter(is_firm == 0) %>% 
+  select(year,zip,address,amount) %>%
+  mutate(year = as.factor(year)) %>%
+  group_by(year,zip,address) %>%
+  summarise(amount=sum(amount))
+
+sum_by_address_indiv_decils <- sum_by_address_indiv %>%
+  group_by(year) %>%
+  mutate(rank = ntile(amount,10)) %>%
+  mutate(rank = as.factor(rank)) %>%
+  mutate(rank = fct_reorder(rank, desc(rank))) %>%
+  group_by(year,rank) %>%
+  summarise(sum=sum(amount)) %>%
+  arrange(desc(year))
+```
+
+
+```{r fig.show = "hold", out.width = "50%", echo=FALSE, results='hide', fig.height=6}
+save_3d_chart(sum_by_address_indiv, 10, "avg", "summed-by-address-indiv")
+save_3d_chart(sum_by_address_indiv, 10, "log_avg", "summed-by-address-indiv")
+```
+```{r fig.show = "hold", out.width = "50%", echo=FALSE, results='hide', fig.height=6}
+save_3d_chart(sum_by_address_indiv, 10, "sum", "summed-by-address-indiv")
+save_3d_chart(sum_by_address_indiv, 10, "log_sum", "summed-by-address-indiv")
+```
+
+```{r fig.show = "hold", out.width = "50%"}
+ggplot(data = sum_by_address_indiv_decils, aes(x = year, y = sum/1000000000, fill = rank)) + 
+  geom_bar(stat = "identity") +
+  labs(y = "sum amount (HUF bn)") +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
+  theme(axis.text.y = element_text(angle = 90, hjust = 1)) +
+  theme_minimal() +
+  scale_fill_viridis(discrete=TRUE,direction=1,option = "D")
+ggsave(paste0(data_out, "2d_sum_by_indiv.png"))
+
+ggplot(data = sum_by_address_indiv_decils, aes(x = year, y = sum/1000000000, fill = rank)) + 
+  geom_bar(stat = "identity", position = 'fill') +
+  labs(y = "Pct of total amount") +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
+  theme_minimal() +
+  scale_fill_viridis(discrete=TRUE,direction=1,option = "D")
+ggsave(paste0(data_out, "2d_sum_by_indiv_stacked.png"))
+```
+
+```{r include=FALSE}
+rm(sum_by_address_indiv)
+rm(sum_by_address_indiv_decils)
+```
+
+
+
+
+## Land-based distribution
+
+```{r include=FALSE}
+############################
+# land-based trends
+############################
+full_by_year_by_type <- agrar_full %>%
+  filter(land_based == 1) %>%
+  select(amount,year,reason) %>%
+  group_by(year,reason) %>%
+  summarise(amount=sum(amount)) %>%
+  as.data.frame()
+```
+
+```{r fig.show = "hold", out.width = "50%"}
+ggplot(data = full_by_year_by_type, aes(x = year, y = amount/1000000000, fill = reason)) + 
+  geom_bar(stat = "identity") +
+  ylab("percent of total amount") +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
+  theme_minimal() +
+  scale_fill_viridis(discrete=TRUE,direction=1,option = "D")
+ggsave(paste0(data_out, "2d_land_based_trends.png"))
+
+ggplot(data = full_by_year_by_type, aes(x = year, y = amount/1000000000, fill = reason)) + 
+  geom_bar(stat = "identity", position = "fill") +
+  ylab("percent of total amount") +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
+  theme_minimal() +
+  scale_fill_viridis(discrete=TRUE,direction=1,option = "D")
+ggsave(paste0(data_out, "2d_land_based_trends_stacked.png"))
+```
+
+
+
+```{r fig.show = "hold", out.width = "50%"}
+ggplot(data = sum_by_dummies, aes(x = year, y = amount/1000000000, fill = land_based)) + 
+  geom_bar(stat = "identity") +
+  labs(y = "sum amount (bn HUF)") +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
+  theme_minimal() +
+  scale_fill_viridis(discrete=TRUE,direction=1,option = "D")
+ggsave(paste0(data_out, "2d_sum_land_based.png"))
+
+ggplot(data = sum_by_dummies, aes(x = year, y = amount/1000000000, fill = land_based)) + 
+  geom_bar(stat = "identity", position = 'fill') +
+  labs(y = "sum amount (bn HUF)") +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
+  theme_minimal() +
+  scale_fill_viridis(discrete=TRUE,direction=1,option = "D")
+ggsave(paste0(data_out, "2d_sum_land_based_stacked.png"))
+```
+
+```{r include=FALSE}
+rm(full_by_year_by_type)  
+rm(sum_by_dummies)
+```
+
+## Individual trends
+
+```{r include=FALSE}
+###################################
+# sum_by_address - individuals
+###################################
+
+sum_by_address_indiv_land <- agrar_full %>%
+  filter(is_firm == 0, land_based == 1) %>% 
+  select(year,zip,address,amount) %>%
+  mutate(year = as.factor(year)) %>%
+  group_by(year,zip,address) %>%
+  summarise(amount=sum(amount))
+
+sum_by_address_indiv_land_decils <- sum_by_address_indiv_land %>%
+  group_by(year) %>%
+  mutate(rank = ntile(amount,10)) %>%
+  mutate(rank = as.factor(rank)) %>%
+  mutate(rank = fct_reorder(rank, desc(rank))) %>%
+  group_by(year,rank) %>%
+  summarise(sum=sum(amount)) %>%
+  arrange(desc(year))
+```
+
+```{r fig.show = "hold", out.width = "50%", echo=FALSE, results='hide', fig.height=6}
+save_3d_chart(sum_by_address_indiv_land, 10, "avg", "summed-by-address-indiv")
+save_3d_chart(sum_by_address_indiv_land, 10, "log_avg", "summed-by-address-indiv")
+```
+
+```{r fig.show = "hold", out.width = "50%", echo=FALSE, results='hide', fig.height=6}
+save_3d_chart(sum_by_address_indiv_land, 10, "sum", "summed-by-address-indiv")
+save_3d_chart(sum_by_address_indiv_land, 10, "log_sum", "summed-by-address-indiv")
+```
+
+```{r fig.show = "hold", out.width = "50%"}
+ggplot(data = sum_by_address_indiv_land_decils, aes(x = year, y = sum/1000000000, fill = rank)) + 
+  geom_bar(stat = "identity") +
+  labs(y = "sum amount (HUF bn)") +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
+  theme(axis.text.y = element_text(angle = 90, hjust = 1)) +
+  theme_minimal() +
+  scale_fill_viridis(discrete=TRUE,direction=1,option = "D")
+ggsave(paste0(data_out, "2d_sum_by_indiv_land.png"))
+
+ggplot(data = sum_by_address_indiv_land_decils, aes(x = year, y = sum/1000000000, fill = rank)) + 
+  geom_bar(stat = "identity", position = 'fill') +
+  labs(y = "Pct of total amount") +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
+  theme_minimal() +
+  scale_fill_viridis(discrete=TRUE,direction=1,option = "D")
+ggsave(paste0(data_out, "2d_sum_by_indiv_land_stacked.png"))
+```
+
+```{r include=FALSE}
+rm(sum_by_address_indiv_land)
+rm(sum_by_address_indiv_land_decils)
+```
+
 # Modeling
 
 Is there a relationship between the amount of money given to a region and the political affiliation of the municipality/county?
