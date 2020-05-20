@@ -51,7 +51,7 @@
   `$.agrar.remove_spaces[a1]
   };
 
-.agrar.fix_missing_zips:{[data]
+.agrar.fix_missing_addresses:{[data]
   missing_address: select from data where zip=0N;
   distinct_winners: select distinct name,zip from data;
   name_counts: select cnt: count i by name from distinct_winners;
@@ -149,7 +149,7 @@
   .agrar.log "normalize addresses";
   raw_data: update address: .agrar.normalize_address'[address] from raw_data;
 
-  raw_data: .agrar.fix_missing_zips[raw_data];
+  raw_data: .agrar.fix_missing_addresses[raw_data];
   .agrar.raw: raw_data;
   .agrar.raw_loaded: 1b;
   .agrar.raw
