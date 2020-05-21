@@ -99,7 +99,7 @@ system "l ../q/elections.q";
   select from ksh_zips where zip in ksh_zip_list except agrar_zip_list;
   select from agrar_zips where zip in agrar_zip_list except ksh_zip_list;
 
-  settlement_name_mismatch: (select zip, kdh_settlement:settlement from ksh_zips) ij (1! select zip,agrar_settlemnt:settlement from (agrar_zips except ksh_zips) where zip in ksh_zip_list);
+  settlement_name_mismatch: (select zip, ksh_settlement:settlement from ksh_zips) ij (1! select zip,agrar_settlemnt:settlement from (agrar_zips except ksh_zips) where zip in ksh_zip_list);
 
   .agrar.save_csv["settlement_name_mismatch";settlement_name_mismatch];
   };
