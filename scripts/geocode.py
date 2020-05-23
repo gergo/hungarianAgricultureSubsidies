@@ -30,7 +30,6 @@ import time
 import sys
 import getopt
 import os
-from concurrent.futures import ThreadPoolExecutor
 
 logger = logging.getLogger("root")
 logger.setLevel(logging.DEBUG)
