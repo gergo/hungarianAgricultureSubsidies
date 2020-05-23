@@ -6,7 +6,7 @@ system "l ../q/utils.q";
 system "l ../q/elections.q";
 
 .agrar.export.normalize:{[]
-  .data.settlements: update settlement_id: i from delete zip_mod,settlement_mod from .data.settlements;
+  .data.settlements: update settlement_id: i from distinct delete zip_mod,settlement_mod from .data.settlements;
 
   normalized1: delete zip_mod,settlement_mod,ksh_id,zip,settlement from
     (update settlement: settlement_mod,zip:zip_mod from .data.full) lj
@@ -59,9 +59,10 @@ system "l ../q/elections.q";
   bp_district_names: `zip_key xkey update zip_key:{"I"$"1",(ssr[;". ker.";""] ssr[;"Budapest ";""] string[x]),"0"}'[settlement] from select from settlements where settlement like "Budapest *";
   budapest_districts: delete zip_key from budapest_zips lj bp_district_names;
   bp_district_name_map: budapest_districts[`zip]!budapest_districts[`settlement];
+  settlement_overrides: (`$("Göd-Alsógöd";"Göd-Felsőgöd"))!(`$("Göd";"Göd"));
 
   raw_subsidies_2_with_zip_mod: update zip_mod: zip ^ postcode from raw_subsidies_1_with_clean_addresses;
-  raw_subsidies_3_with_bp_districts: update settlement_mod: settlement ^ bp_district_name_map[zip_mod] from raw_subsidies_2_with_zip_mod;
+  raw_subsidies_3_with_bp_districts: update settlement_mod: settlement ^ settlement_overrides[settlement] ^ bp_district_name_map[zip_mod] from raw_subsidies_2_with_zip_mod;
 
   zips_by_settlement: select distinct zip_mod by settlement_mod from raw_subsidies_3_with_bp_districts where zip_mod<>0N;
 
@@ -85,7 +86,7 @@ system "l ../q/elections.q";
   ];
 
   // settlement-level data for analysis
-  .data.settlement_stats: select distinct from delete zip_mod,zip,settlement_id from .data.settlements;
+  .data.settlement_stats: delete from (select distinct from delete zip_mod,zip,settlement_id from .data.settlements) where settlement_mod=`;
   .data.win_by_settlements: 0! select sum amount by is_firm,land_based,year,ksh_id from .data.full;
   };
 
