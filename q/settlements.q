@@ -17,7 +17,7 @@
   settlement_parts: select distinct zip: iranyito_szam, ksh_id: ksh_kod, settlement: helyseg from raw_settlement_parts where iranyito_szam<>0N;
   postal_map: .posta.zip_map[];
   postal_map_with_ksh_id: postal_map lj 1! select distinct settlement,ksh_id from settlement_parts;
-  joined: `zip xasc `zip xkey settlement_parts,select zip,ksh_id,settlement from postal_map_with_ksh_id;
+  joined: `zip xasc `zip xkey distinct settlement_parts,select zip,ksh_id,settlement from postal_map_with_ksh_id;
   delete from joined where settlement like "Budapest*"
   };
 
