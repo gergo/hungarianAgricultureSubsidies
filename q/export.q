@@ -66,11 +66,11 @@ system "l ../q/elections.q";
 
   zips_by_settlement: select distinct zip_mod by settlement_mod from raw_subsidies_3_with_bp_districts where zip_mod<>0N;
 
-  .data.settlement_details: `ksh_id xkey distinct update settlement:settlement_mod,zip:zip_mod from ungroup (update settlement_mod:settlement from settlements) lj zips_by_settlement;
+  .data.settlement_details: distinct update settlement:settlement_mod,zip:zip_mod from ungroup (update settlement_mod:settlement from settlements) lj zips_by_settlement;
 
   // zip to ksh_id map
   zip_map: (distinct select distinct zip,ksh_id,settlement from .data.settlement_details),(select zip,ksh_id,settlement from budapest_districts), 0!.ksh.ksh_id_zip_map[];
-  .data.settlements: zip_map lj .data.settlement_details;
+  .data.settlements: .data.settlement_details lj `zip xkey zip_map;
 
   // add ksh_id to subsidies
   data_full: raw_subsidies_3_with_bp_districts lj `settlement_mod xkey select distinct ksh_id,settlement_mod from .data.settlements;
