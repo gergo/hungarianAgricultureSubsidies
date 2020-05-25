@@ -12,14 +12,20 @@ output:
     keep_tex: yes
     number_sections: yes
     toc: true
+    toc_depth: 3
     extra_dependencies: "subfig"
+    highlight: pygments
   html_document:
     df_print: paged
     toc: true
     theme: united
     extra_dependencies: "subfig"
+    highlight: pygments
   word_document: default
-header-includes: \usepackage{dcolumn} \usepackage{float} \floatplacement{figure}{H}
+header-includes:
+    - \usepackage{float}
+    - \usepackage{dcolumn}
+    - \floatplacement{figure}{H}
 ---
 
 ```{r setup, include=FALSE, echo = FALSE, message = FALSE, warning = FALSE}
@@ -200,7 +206,7 @@ When creating the data engineering pipeline the aim was to make it as automatic 
 
 ## Runtime dependencies
 
-- **bash**: The various data sources can be downloaded and processed by executing a handful of shell scripts. For this a unix environment with a command line is required.
+- **Bash**: The various data sources can be downloaded and processed by executing a handful of shell scripts. For this a unix environment with a command line is required.
 - **KDB**: To efficiently process the raw data and merge it with other datasets I use a programming language called q that comes with an in-memory database solution called KDB. It's free to [download](https://kx.com/connect-with-us/download/).
 - **Python 3**: The project contains a script to call the Google Maps API to geocode addresses. This creates a standardized format for the addresses and also adds latitude and longitude coordinates to the addresses of the beneficiaries.
 - **R**: Data analysis is done in R so an [R runtime](https://www.r-project.org/) is also needed.
@@ -220,17 +226,17 @@ ls -lh ../input/csv/*.csv | awk '{print $5,$9}' | paste - -
 The original files are in `ISO-8859-2` encoding (aka. Latin-2). After converting the data to `UTF8` it is in a format that programming languages can deal with in a more natural way. The contents look like this:
 
 ```{r, engine = 'bash', eval = TRUE}
-# most rows are long; to make the sample fit to the generated document I filter for rows with <100 characters
-cat ../input/csv/utf8_2011.csv | head -n1000 | awk 'length($0) < 100' | head -n6
+# most rows are long; to make the sample fit to the generated document I filter for rows with <97 characters
+cat ../input/csv/utf8_2011.csv | head -n1000 | awk 'length($0) < 97' | head -n6
 ```
 
 ## Basic data cleaning
 
 During exploratory data analysis I found multiple versions of the same entity. Fixing this is important if we want to get an accurate view on at aggregate subsidies by beneficiaries.
 
-- *White spaces*:  Some names contained multiple spaces instead of a single space when separating name parts. I replaced all whitespace group with a single space in the names.
-- *Character cases*: Some names had multiple versions with inconsistent capitalizations (eg. all caps) so I split names by spaces and capitalized only the first character in each name part.
-- *Remove dots*: Some names had multiple variations based on how abbreviations in their name parts were written: some had '.', other rows did not.
+- **White spaces**:  Some names contained multiple spaces instead of a single space when separating name parts. I replaced all whitespace group with a single space in the names.
+- **Character cases**: Some names had multiple versions with inconsistent capitalizations (eg. all caps) so I split names by spaces and capitalized only the first character in each name part.
+- **Remove dots**: Some names had multiple variations based on how abbreviations in their name parts were written: some had '.', other rows did not.
 
 The above steps reduced the unique number of entities from 249087 to 248245.
 
@@ -239,7 +245,7 @@ The above steps reduced the unique number of entities from 249087 to 248245.
 Individuals and institutions are not separated in the data. There is no indication of the beneficiary type but it would be important to investigate the 2 kinds separately. There are not just firms but churches, municipalities, clubs and all sorts of other organizations but for simplicity I call these firms. I made the initial assumption that any name that has 8 or more name parts is a firm but this is obviously not enough. For names that have 8 or fewer name parts I identified a large number of keywords that indicate that the beneficiary is an institution.
 
 ```{r, engine = 'bash', eval = TRUE}
-paste -s -d";" ../input/names/firm_keywords.txt
+paste -s -d" " ../input/names/firm_keywords.txt | fold -w 90
 ```
 
 ```{r fig.cap='Yearly proportion of individuals and firms', fig.subcap=c('Sum amounts in billion HUF', 'Proportion of the groups'), fig.ncol = 2, out.width = "50%", fig.align = "center"}
@@ -262,7 +268,7 @@ ggsave(paste0(data_out, "2d_sum_isfirm_stacked.png"))
 
 ## Gender Information
 
-Most of the non-institutional beneficiaries are Hungarian citizens. It would be interesting to see the gender-based distribution of the subsidies given to people. This information is not in the data but we can split citizens to male/female categories based on their names. This will not be 100% accurate but the data does not allow a better approach. All given names legally allowed in Hungary are available on the [internet](http://www.nytud.mta.hu/oszt/nyelvmuvelo/utonevek/). Names not in the list are of foreign origin so they show up as 'unknown'. Some female citizens changed their legal name to that of their husbands by adding a "-né" postfix. This pattern is easy to find so I took this into account.
+Most of the non-institutional beneficiaries are Hungarian citizens. It would be interesting to see the gender-based distribution of the subsidies given to people. This information is not in the data but we can split citizens to 'male' and 'female' categories based on their names. This will not be 100% accurate but the data does not enable a better approach. All given names legally allowed in Hungary are available on the [internet](http://www.nytud.mta.hu/oszt/nyelvmuvelo/utonevek/). Names not in the list are of foreign origin so they will be categorized as 'unknown'. Some female citizens changed their legal name to that of their husbands by adding a "-né" postfix. This pattern is easy to find so that is also taken into account.
 
 ```{r fig.cap='Distribution of male/female beneficiaries', fig.subcap=c('Sum of subsidies won in billion HUF', 'Proportion of the groups'), fig.ncol = 2, out.width = "50%", fig.align = "center"}
 by_gender <- agrar_full %>%
@@ -295,19 +301,24 @@ rm(by_gender)
 
 ## Clean Addresses
 
-Fixing the addresses was the most complicated part of the data engineering pipeline. There are 3 fields that contain address information: zip code, settlement and the address.
+Fixing the addresses was the most complicated part of the data engineering pipeline. There are 3 fields that contain geographical information: zip code, settlement and address. During exploratory data analysis it became obvious that the address field was too varied to standardize by simple rules.
 
-Zip codes, settlement parts, county capitals, ksh_id and basic stats from ksh (http://www.ksh.hu/docs/helysegnevtar/hnt_letoltes_2019.xls)
-Some missing zip codes using Hungarian Postal Service (https://www.posta.hu/static/internet/download/Iranyitoszam-Internet_uj.xlsx)
-Clean Addresses
-330 000 unique addresses with typos, formatting differences.
-use [Google Maps Geocoding Api](https://maps.googleapis.com/maps/api/geocode/) to standardize addresses and get latitude/longitude coordinates  
-Manual mapping files
+### Missing addresses
+
+The address fields are missing for almost 300 data points totaling almost 9.6 billion HUF. Some entries don't even have names but according to domain experts this is expected as these records indicate money that was used to cover the costs of running the program. This accounts for almost 9.3 billion of the incomplete records. Some data points don't have addresses but have names. If a name appears with exactly two variations: once with address and once without I assume that it is the same beneficiary and use the address. If there are no entries with the same name with filled addresses or there are multiple such entries in the full dataset then I cannot fix the address field and dropped these records. These amounts are tiny compared to the whole dataset so these should not have a real impact on the overall analysis.
+
+### Geocoding
+
+To be able to aggregate agricultural subsidies on the beneficiary level it was important to have a geographical information that can be used as a key along with the name. After several iterations of address cleaning efforts I came up with the idea to use some geocoding API to convert all addresses to a standardized format. Unfortunately, I did not find an accurate, free service so I ended up using the [Google Maps Geocoding Api](https://maps.googleapis.com/maps/api/geocode/). The raw data has 424 627 unique addresses and each one of these had to be sent to the API for geocoding. I created batches of addresses to geocode and used a python script to process them. The service is free only up to a limit and geocoding all addresses takes several hours. I saved down the results so I wouldn't have to do this slow, somewhat manual process another time for addresses that were successfully geocoded. The API is sensitive to permutations in the address parts so tried to find an order that yielded a higher success rate. Unfortunately, Google Maps couldn't convert some addresses so in those cases I just use the original format. One extra benefit of this approach was that all addresses that could be processed now have a geo-coordinates. Using the latitude and longitude information we can create a map showing in which areas those beneficiaries live who got most of the subsidies. After geocoding the number of unique addresses decreased by more than 25 000 so aggregating will be much more accurate.
+
+### Geographical information and statistics
+
+The Central Statistics Agency (Központi Statisztikai Hivatal - KSH) has a website where a lot of descriptive statistics are available about Hungary. A complicated [excel file](http://www.ksh.hu/docs/helysegnevtar/hnt_letoltes_2019.xls) can be downloaded and parsed to get how the country is divided into regional hierarchies. KSH has their own ID to tag areas called KSH_KOD. For the majority of cases this ID represents a settlement and contains all the zip codes of that area. Unfortunately, after several attempts to join the 2 datasets it turned out that zip codes and KSH_IDs are in a many-to-many relationship. The data provided by KSH and the agricultural subsidies had reconciliation issues too. Some zip code + settlement pairs were different in the 2 datasets while other zip codes were missing altogether from the KSH tables but were valid (as verified by online maps). I [reached out](https://kapcsolat.ksh.hu/ContactCenter/ugyworeg.xhtml?megerositokod=f1d9bd5a-2e87-4912-aae7-c7816a999ace&lang=hu) to KSH for clarification and they acknowledged the data issues. However, they did not take steps to fix them in this fundamental data source, rather redirected me at [yet another dataset](https://www.posta.hu/static/internet/download/Iranyitoszam-Internet_uj.xlsx) maintained by the Hungarian Postal Service that truly has all of the zip codes. Using these 2 datasources and a refined logic to fix mapping issues I was able to join the datasets. The iterative data cleaning and exploration process highlighted that there were still a few inaccuracies but those could be fixes by a small override file that is part of the project.
 
 `r pagebreak()`
 # Data Exploration
 
-## Descriptive Stats
+## Descriptive Statistics
 
 ```{r include=FALSE}
 stat_controls <- tableby.control(
