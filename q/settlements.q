@@ -16,8 +16,10 @@
   raw_settlement_parts: .ksh.process_settlements_parts_file[];
   settlement_parts: select distinct zip: iranyito_szam, ksh_id: ksh_kod, settlement: helyseg from raw_settlement_parts where iranyito_szam<>0N;
   postal_map: .posta.zip_map[];
-  postal_map_with_ksh_id: postal_map lj 1! select distinct settlement,ksh_id from settlement_parts;
-  joined: `zip xasc `zip xkey distinct settlement_parts,select zip,ksh_id,settlement from postal_map_with_ksh_id;
+  postal_map_with_ksh_id: postal_map lj `settlement`zip xkey settlement_parts;
+  p1: (select from postal_map_with_ksh_id where ksh_id=0N) lj `settlement xkey distinct select ksh_id, settlement from settlement_parts;
+  p2: select from postal_map_with_ksh_id where ksh_id<>0N;
+  joined: `zip xasc distinct settlement_parts,select zip,ksh_id,settlement from p1,p2;
   delete from joined where settlement like "Budapest*"
   };
 
