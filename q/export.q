@@ -61,6 +61,7 @@ system "l ../q/elections.q";
   bp_district_name_map: budapest_districts[`zip]!budapest_districts[`settlement];
   settlement_overrides: select zip,settlement from .ksh.ksh_id_settlement_map[] where zip in (exec zip from (select c: count i by zip from .ksh.ksh_id_settlement_map[]) where c=1);
   settlement_override_map: settlement_overrides[`zip]!settlement_overrides[`settlement];
+  settlement_part_map: .ksh.ksh_id_settlement_part_map[][`settlement_part]!.ksh.ksh_id_settlement_part_map[][`settlement];
 
   raw_subsidies_2_with_zip_mod: update zip_mod: zip ^ postcode from raw_subsidies_1_with_clean_addresses;
   raw_subsidies_3_with_bp_districts: update settlement_mod: settlement ^ settlement_part_map[settlement] ^ settlement_override_map[zip_mod] ^ bp_district_name_map[zip_mod] from raw_subsidies_2_with_zip_mod;
