@@ -59,22 +59,23 @@ system "l ../q/elections.q";
   bp_district_names: `zip_key xkey update zip_key:{"I"$"1",(ssr[;". ker.";""] ssr[;"Budapest ";""] string[x]),"0"}'[settlement] from select from settlements where settlement like "Budapest *";
   budapest_districts: delete zip_key from budapest_zips lj bp_district_names;
   bp_district_name_map: budapest_districts[`zip]!budapest_districts[`settlement];
-  settlement_overrides: (`$("Göd-Alsógöd";"Göd-Felsőgöd"))!(`$("Göd";"Göd"));
+  settlement_overrides: select zip,settlement from .ksh.ksh_id_settlement_map[] where zip in (exec zip from (select c: count i by zip from .ksh.ksh_id_settlement_map[]) where c=1);
+  settlement_override_map: settlement_overrides[`zip]!settlement_overrides[`settlement];
 
   raw_subsidies_2_with_zip_mod: update zip_mod: zip ^ postcode from raw_subsidies_1_with_clean_addresses;
-  raw_subsidies_3_with_bp_districts: update settlement_mod: settlement ^ settlement_overrides[settlement] ^ bp_district_name_map[zip_mod] from raw_subsidies_2_with_zip_mod;
+  raw_subsidies_3_with_bp_districts: update settlement_mod: settlement ^ settlement_part_map[settlement] ^ settlement_override_map[zip_mod] ^ bp_district_name_map[zip_mod] from raw_subsidies_2_with_zip_mod;
 
   zips_by_settlement: select distinct zip_mod by settlement_mod from raw_subsidies_3_with_bp_districts where zip_mod<>0N;
-
   .data.settlement_details: distinct update settlement:settlement_mod,zip:zip_mod from ungroup (update settlement_mod:settlement from settlements) lj zips_by_settlement;
 
   // zip to ksh_id map
-  zip_map: (distinct select distinct zip,ksh_id,settlement from .data.settlement_details),(select zip,ksh_id,settlement from budapest_districts), 0!.ksh.ksh_id_zip_map[];
-  .data.settlements: .data.settlement_details lj `zip xkey zip_map;
+  zip_map: distinct (select distinct zip,ksh_id,settlement from .data.settlement_details),(select zip,ksh_id,settlement from budapest_districts),.ksh.ksh_id_settlement_map[];
+  .data.settlements: .data.settlement_details lj `zip`settlement xkey zip_map;
 
   // add ksh_id to subsidies
-  data_full: raw_subsidies_3_with_bp_districts lj `settlement_mod xkey select distinct ksh_id,settlement_mod from .data.settlements;
-  .data.full: (select from data_full where ksh_id<>0N),(select from data_full where ksh_id=0N) lj `zip xkey zip_map;
+  data_full: raw_subsidies_3_with_bp_districts lj `settlement_mod`zip_mod xkey select distinct ksh_id,settlement_mod,zip_mod from .data.settlements;
+  .data.full: (select from data_full where ksh_id<>0N),(select from data_full where ksh_id=0N) lj `zip`settlement xkey zip_map;
+
 
   // assert: log if there are unmapped zip codes
   unmapped: `amount xdesc select sum amount by year,zip,settlement_mod from .data.full where ksh_id=0N;
