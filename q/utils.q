@@ -99,7 +99,7 @@
   };
 
 .agrar.capitalize:{[word]
-  (upper 1 # word),lower 1 _ word
+  (.agrar.upper 1 # word),.agrar.lower 1 _ word
   };
 
 .agrar.remove_whitespace:{[word]
@@ -134,12 +134,13 @@
   raw_data: update is_firm:1b from raw_data where name_parts>8;
   .agrar.log "marking firms based on keywords";
   raw_firm_keywords: read0 hsym `$"../input/names/firm_keywords.txt";
-  firm_keywords: {"*",x,"*"} each upper raw_firm_keywords;
+  firm_keywords: {"*",x,"*"} each .agrar.upper each raw_firm_keywords;
 
   // keyword-based matching is quite slow so only run on rows we have not categorized yet
   known_firms: select from raw_data where is_firm;
   raw_data: delete from raw_data where is_firm;
-  raw_data: known_firms,update is_firm:1b from raw_data where any upper[name] like/: firm_keywords;
+  raw_data: update upper_name: {`$ .agrar.upper string x}'[name] from raw_data;
+  raw_data: known_firms,delete upper_name from update is_firm:1b from raw_data where any upper_name like/: firm_keywords;
 
   .agrar.log "marking land-based wins";
   land_based_categories: `$("Területalapú támogatás";"Zöldítés támogatás igénylése");
@@ -200,3 +201,10 @@ oj:{
     ]
   ];
   };
+
+.agrar.lowerChars: raze ("á";"é";"í";"ó";"ö";"ő";"ú";"ü";"ű");
+.agrar.upperChars: raze ("Á";"É";"Í";"Ó";"Ö";"Ő";"Ú";"Ü";"Ű");
+.agrar.toUpperMap:(.agrar.lowerChars!.agrar.upperChars);
+.agrar.toLowerMap:(.agrar.upperChars!.agrar.lowerChars);
+.agrar.upper:{[s] {$[x in .agrar.lowerChars; :.agrar.toUpperMap x; :upper x]} each s};
+.agrar.lower:{[s] {$[x in .agrar.upperChars; :.agrar.toLowerMap x; :lower x]} each s};
