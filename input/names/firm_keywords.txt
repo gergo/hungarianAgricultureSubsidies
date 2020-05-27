@@ -1,86 +1,107 @@
-BT
-KFT
+ Megyei 
+ÁfÉsz
+Agrár kamara
+Agrárkamara
 Alapítvány
-Egyesület
-ZRT
-VÁLLALAT
-Iroda
-Önkormányzat
-Község
-Társulat
-Szövetkezet
+Állami
+Apostoli Exarchátus
 Asztaltársaság
-Vadásztársaság
-Intézmény
-Társulás
-Közösség
-Központ
-Társaság
-szolgálat
-Plébánia
-Szervezet
-Szövetség
-Sportklub
+Baráti Kör
+Baráti köre
+barátok Kör
+Baromfi
+birtok
+BT
+Club
+Csoportosulás
+dísznövény
+Egyéni cég
+Egyesülés
+Egyesület
+Egyetem
+Egyház
+Egylet
+Együttműködési
+Erdőgazdálkodás
+Erdőszöv
+és vidéke
+Faiskola
+Fióktelepe
+GAMESZ
+Gazdakör
+Gazdaság
+Gondnokság
+Gyülekezet
+Hegypásztor Kör
+hivatal
 Igazgatóság
 Intézet
-Klub
-Minisztérium
-Baráti köre
-llamkincst
-Egyetem
-hivatal
-Zöldség-Gyümölcs
-Kfc
-Tsz
-birtok
-Pincészet
-Egyéni cég
-Kkt.
-Baráti Kör
-Egyesülés
-Gazdakör
-Olvasókör
-Club
-Társegyház
-Szerzetesrend
-Egyház
-Lelkészség
-Gazdaság
-Rt.
-Gyülekezet
-Erdőszöv
-Lovas Kör
+Intézmény
 Ipartestület
-Nőegylet
-Polgárőrség
-Vadászegylet
-Fióktelepe
-Baromfi
-Hegypásztor Kör
-és vidéke
-TÉSZ
-Sport Kör
-Nővérek
-Sportkör
-Egylet
+Iroda
 Iskola
-Erdőgazdálkodás
-Faiskola
+Kereskedelmi
+Kfc
+KFT
+Kht
+kkt
+Klub
 Kórház
-Múzeum
-Zarándokház
-Olvsdó kör
-Agrárkamara
-Agrár kamara
-Állami
-GAMESZ
-Testület
-Apostoli Exarchátus
-Parókia
-Gondnokság
-Szakképzési
-barátok Kör
- Megyei 
-Testgyakorlók Kör
+Közösség
+Központ
+Község
+Lelkészség
+llamkincst
+Lovas Kör
 Megyei Jogú
+Minisztérium
+Művelődési Ház
+Múzeum
+Nőegylet
+Nővérek
+nyrt
+Olvasókör
+Olvsdó kör
+Önkormányzat
+Otthona
+Parókia
+Pincészet
+Plébánia
+Polgárőrség
+Rt.
+Sport Kör
+Sportklub
+Sportkör
+Szakképzési
+Székely Kör
+Szervezet
+Szerzetesrend
+szolgálat
+Szolgáltato
+Szolgáltató
+Szövetekezet
+Szövetkezet
+Szövetség
+Társaság
+Társegyház
+Társulás
+Társulat
+Tejfeldolgozó
+Tejfelvásárló
+Testgyakorlók Kör
+Testület
+TÉSZ
+Tsz
+Üzemeltető
+Vadászegylet
+Vadásztársaság
+Vadgazdálkodási
+Vállalat
+Vállalkozás
 Városgondnoksága
+Városi Kincstár
+Zarándokház
+Zártkörüen
+Zártkörűen
+Zöldség-Gyümölcs
+ZRT
