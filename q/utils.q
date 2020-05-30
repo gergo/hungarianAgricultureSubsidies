@@ -82,7 +82,7 @@
   (hsym `$file) 0: "," 0: data;
   };
 
-.agrar.process_file:{[f]
+.agrar.read_file:{[f]
   yr: `$ ssr[;".csv";""] ssr[f;.agrar.input,"utf8_";""];
   .agrar.log "  processing raw data for ", string yr;
   t: ("SISSSSSJ";enlist";")0:`$f;
@@ -91,7 +91,7 @@
   t
   };
 
-.agrar.process_2010_file:{
+.agrar.read_2010_file:{
   .agrar.log "  processing raw data for 2010";
   t: ("SISSSSSJJS";enlist",")0:`$.agrar.input, "old_2010.csv";
   t: `name`zip`settlement`address`reason`program`source`amount`total_amount`year xcol t;
@@ -114,41 +114,50 @@
   `$ " " sv .agrar.capitalize each " " vs .agrar.remove_whitespace .agrar.remove_dots string nm
   };
 
-.agrar.load_csvs:{[]
-  if[.agrar.raw_loaded;:.agrar.raw];
-  .agrar.log "loading raw CSVs";
-  files: system "ls ",.agrar.input, "utf8_*csv";
-  data_2010: .agrar.process_2010_file[];
-  raw_data: data_2010, raze .agrar.process_file each files;
-  .agrar.log "raw files loaded   - ", string count raw_data;
+.agrar.process_csv:{[tbl]
+  .agrar.log "Processing  - ", raze string exec year from 1 # tbl;
+  .agrar.log "Records:  - ", string count tbl;
 
-  raw_data: delete from raw_data where amount<0;
-  .agrar.log "<0 amounts dropped - ", string count raw_data;
+  tbl: delete from tbl where amount<0;
+  .agrar.log "<0 amounts dropped - ", string count tbl;
 
-  .agrar.log "unique names: ", string count select distinct name from raw_data;
-  raw_data: update name:.agrar.fix_name'[name] from raw_data;
-  .agrar.log "Trivial name errors fixed; unique names: ", string count select distinct name from raw_data;
+  dropping: raze exec sum amount from tbl where name=`,address=`;
+  tbl: delete from tbl where name=`,address=`;
+  .agrar.log "records without name and address dropped totaling: ", raze string dropping;
 
-  raw_data: update name_parts:{count " " vs string x}'[name] from raw_data;
+  .agrar.log "unique names: ", string count select distinct name from tbl;
+  tbl: update name:.agrar.fix_name'[name] from tbl;
+  .agrar.log "Trivial name errors fixed; unique names: ", string count select distinct name from tbl;
 
-  raw_data: update is_firm:1b from raw_data where name_parts>8;
+  tbl: update name_parts:{count " " vs string x}'[name] from tbl;
+
+  tbl: update is_firm:1b from tbl where name_parts>8;
   .agrar.log "marking firms based on keywords";
   raw_firm_keywords: read0 hsym `$"../input/names/firm_keywords.txt";
   firm_keywords: {"*",x,"*"} each .agrar.upper each raw_firm_keywords;
 
   // keyword-based matching is quite slow so only run on rows we have not categorized yet
-  known_firms: select from raw_data where is_firm;
-  raw_data: delete from raw_data where is_firm;
-  raw_data: update upper_name: {`$ .agrar.upper string x}'[name] from raw_data;
-  raw_data: known_firms,delete upper_name from update is_firm:1b from raw_data where any upper_name like/: firm_keywords;
+  known_firms: select from tbl where is_firm;
+  tbl: delete from tbl where is_firm;
+  tbl: update upper_name: {`$ .agrar.upper string x}'[name] from tbl;
+  tbl: known_firms,delete upper_name from update is_firm:1b from tbl where any upper_name like/: firm_keywords;
 
   .agrar.log "marking land-based wins";
   land_based_categories: `$("Területalapú támogatás";"Zöldítés támogatás igénylése");
-  raw_data: update land_based: 1b from raw_data where reason in land_based_categories;
+  tbl: update land_based: 1b from tbl where reason in land_based_categories;
   .agrar.log "determinig gender of winners";
-  raw_data: update gender: .agrar.determine_gender'[name] from raw_data where not is_firm;
+  tbl: update gender: .agrar.determine_gender'[name] from tbl where not is_firm;
   .agrar.log "normalize addresses";
-  raw_data: update address: .agrar.normalize_address'[address] from raw_data;
+  tbl: update address: .agrar.normalize_address'[address] from tbl;
+  tbl
+  };
+
+.agrar.load_csvs:{[]
+  if[.agrar.raw_loaded;:.agrar.raw];
+  .agrar.log "loading raw CSVs";
+  files: system "ls ",.agrar.input, "utf8_*csv";
+  data_2010: .agrar.process_csv .agrar.read_2010_file[];
+  raw_data: data_2010, raze {.agrar.process_csv .agrar.read_file x} each files;
 
   raw_data: .agrar.fix_missing_addresses[raw_data];
   .agrar.raw: raw_data;
