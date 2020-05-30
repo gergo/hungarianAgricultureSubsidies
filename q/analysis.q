@@ -29,27 +29,6 @@ system "l ../q/create_network.q";
   .agrar.save_csv["felcsut_avg_wins"; .felcsut.avg_wins];
   };
 
-.agrar.analyze.big_wins:{[]
-  // Are there individuals and firms that share address?
-  .misc.same_addresses: (`zip`settlement`address xkey select f_amt: sum amount by zip,settlement,address,firm:name from .agrar.firms) ij
-    `zip`settlement`address xkey select p_amt: sum amount by zip,settlement,address,person: name from .agrar.ppl;
-
-  // Residents of which town won the largest amount of subsidies - order by average wins
-  .misc.ppl_wins_avg: `avg_amt xdesc update avg_amt: amount%wins from select sum amount, wins: count i by settlement,
-  zip from .agrar.ppl;
-
-  // Firms of which town won the most money - order by average amount
-  .misc.firm_wins: `avg_amt xdesc update avg_amt: amount%wins from select sum amount, wins: count i by settlement,zip
-  from .agrar.firms;
-
-  // Which individuals won the most in agricultural subsidies
-  .misc.ppl_wins_max: () xkey `amount xdesc select sum amount,count i by name,settlement,address from .agrar.ppl;
-
-  // which households contain the most winners (along with the amounts)
-  .misc.single_household: select from (`cnt xdesc select nm: enlist name, cnt: count i,sum amount by
-  settlement,address from select sum amount by name,settlement,address from .agrar.ppl where address<>`) where cnt>5;
-  };
-
 .agrar.analyze.init:{[]
   .agrar.raw: .agrar.load_csvs[];
   .agrar.firms: select from .agrar.raw where is_firm;

@@ -107,6 +107,28 @@ system "l ../q/elections.q";
   .agrar.save_csv["settlement_name_mismatch";settlement_name_mismatch];
   };
 
+.agrar.analyze:{[]
+  .data.ppl: select from .data.full where not is_firm;
+  .data.firms: select from .data.full where is_firm;
+
+  // Are there individuals and firms that share address?
+  .misc.same_addresses: (select f_amt: sum amount by zip,settlement,address,firm:name from .data.firms) ij
+  `zip`settlement`address xkey select p_amt: sum amount by zip,settlement,address,person: name from .data.ppl;
+
+  // Residents of which town won the largest amount of subsidies - order by average wins
+  .misc.ppl_wins_avg: `avg_amt xdesc update avg_amt: amount%wins from select sum amount, wins: count i by settlement, zip from .data.ppl;
+
+  // Firms of which town won the most money - order by average amount
+  .misc.firm_wins: `avg_amt xdesc update avg_amt: amount%wins from select sum amount, wins: count i by settlement,zip from .data.firms;
+
+  // Which individuals won the most in agricultural subsidies
+  .misc.ppl_wins_max: () xkey `amount xdesc select sum amount,count i by name,settlement,address from .data.ppl where gender=`unknown;
+
+  // which households contain the most winners (along with the amounts)
+  .misc.single_household: select from (`cnt xdesc select nm: enlist name, cnt: count i,sum amount by
+  settlement,address from select sum amount by name,settlement,address from .data.ppl where address<>`) where cnt>5;
+  };
+
 if[`EXPORT=`$.z.x[0];
   .agrar.export.init[];
   .agrar.export.normalize[];
