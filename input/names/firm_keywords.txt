@@ -48,6 +48,7 @@ Kereskedelmi
 Kfc
 KFT
 Kht
+Kincstár
 kkt
 Klub
 Konzervipari
@@ -67,6 +68,7 @@ Nőegylet
 Nővérek
 nyrt
 Olvasókör
+Olvasó kör
 Olvsdó kör
 Önkormányzat
 Otthona
@@ -94,6 +96,7 @@ Szövetkezet
 Szövetség
 Tartománya
 Társaság
+Társaskör
 Társegyház
 Társulás
 Társulat
