@@ -98,10 +98,6 @@
   delete total_amount from t
   };
 
-.agrar.capitalize:{[word]
-  (.agrar.upper 1 # word),.agrar.lower 1 _ word
-  };
-
 .agrar.remove_whitespace:{[word]
   ssr[word;"  ";" "]
   };
@@ -110,8 +106,25 @@
   ssr[word;".";""]
   };
 
+.agrar.remove_apostrophes:{[word]
+  ssr[word;"\\\"";""]
+  };
+
+.agrar.ugly_upper:{[w] ssr[;"á";"Á"]ssr[;"é";"É"]ssr[;"í";"Í"]ssr[;"ó";"Ó"]ssr[;"ö";"Ö"]ssr[;"ő";"Ő"]ssr[;"ú";"Ú"]ssr[;"ü";"Ü"]ssr[;"ű";"Ű"] upper w};
+.agrar.ugly_lower:{[w] ssr[;"Á";"á"]ssr[;"É";"é"]ssr[;"Í";"í"]ssr[;"Ó";"ó"]ssr[;"Ö";"ö"]ssr[;"Ő";"ő"]ssr[;"Ú";"ú"]ssr[;"Ü";"ü"]ssr[;"Ű";"ű"] upper w};
+
+.agrar.lowerChars: ("á";"é";"í";"ó";"ö";"ő";"ú";"ü";"ű");
+.agrar.upperChars: ("Á";"É";"Í";"Ó";"Ö";"Ő";"Ú";"Ü";"Ű");
+.agrar.toUpperMap:(.agrar.lowerChars!.agrar.upperChars);
+.agrar.capitalize:{[word]
+  startsWithSpecialChar: (2#word) in .agrar.lowerChars;
+  $[startsWithSpecialChar;
+    :(.agrar.toUpperMap 2#word),.agrar.ugly_lower 2_word;
+    :(upper 1 # word),.agrar.ugly_lower 1 _ word]
+  };
+
 .agrar.fix_name:{[nm]
-  `$ " " sv .agrar.capitalize each " " vs .agrar.remove_whitespace .agrar.remove_dots string nm
+  `$ " " sv .agrar.capitalize each " " vs .agrar.remove_whitespace .agrar.remove_dots .agrar.remove_apostrophes string nm
   };
 
 .agrar.process_csv:{[tbl]
@@ -134,12 +147,12 @@
   tbl: update is_firm:1b from tbl where name_parts>8;
   .agrar.log "marking firms based on keywords";
   raw_firm_keywords: read0 hsym `$"../input/names/firm_keywords.txt";
-  firm_keywords: {"*",x,"*"} each .agrar.upper each raw_firm_keywords;
+  firm_keywords: {"*",x,"*"} each .agrar.ugly_upper each raw_firm_keywords;
 
   // keyword-based matching is quite slow so only run on rows we have not categorized yet
   known_firms: select from tbl where is_firm;
   tbl: delete from tbl where is_firm;
-  tbl: update upper_name: {`$ .agrar.upper string x}'[name] from tbl;
+  tbl: update upper_name: {`$ .agrar.ugly_upper string x}'[name] from tbl;
   tbl: known_firms,delete upper_name from update is_firm:1b from tbl where any upper_name like/: firm_keywords;
 
   .agrar.log "marking land-based wins";
@@ -211,9 +224,11 @@ oj:{
   ];
   };
 
-.agrar.lowerChars: raze ("á";"é";"í";"ó";"ö";"ő";"ú";"ü";"ű");
-.agrar.upperChars: raze ("Á";"É";"Í";"Ó";"Ö";"Ő";"Ú";"Ü";"Ű");
-.agrar.toUpperMap:(.agrar.lowerChars!.agrar.upperChars);
-.agrar.toLowerMap:(.agrar.upperChars!.agrar.lowerChars);
-.agrar.upper:{[s] {$[x in .agrar.lowerChars; :.agrar.toUpperMap x; :upper x]} each s};
-.agrar.lower:{[s] {$[x in .agrar.upperChars; :.agrar.toLowerMap x; :lower x]} each s};
+// works but very slow compared to native approach
+.agrar.capitalize_py: {raze system "python -c \"print(\\\"",x,"\\\".capitalize())\""};
+.agrar.upper_py:{raze system "python -c \"print(\\\"",x,"\\\".upper())\""};
+.agrar.lower_py:{raze system "python -c \"print(\\\"",x,"\\\".lower())\""};
+.agrar.toPythonList: {"[",("," sv "'",'x,'"'"),"]"};
+.agrar.pythonUpper: {system "python -c \"print([nm.title() for nm in ",x,"])\""};
+.agrar.toQList: {-1_'1_'", " vs -1_1_x};
+.agrar.customUpper: {`$ .agrar.toQList first .agrar.pythonUpper .agrar.toPythonList x};
