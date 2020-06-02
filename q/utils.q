@@ -20,8 +20,12 @@
   `$data
   };
 
-.agrar.male_names: .agrar.download_names "osszesffi";
-.agrar.female_names: .agrar.download_names "osszesnoi";
+.agrar.name_overrides:{[nm]
+  `$ system "cat ",.agrar.names_dl,nm,".txt"
+  };
+
+.agrar.male_names: distinct .agrar.name_overrides["men"], .agrar.download_names["osszesffi"];
+.agrar.female_names: distinct .agrar.name_overrides["women"], .agrar.download_names["osszesnoi"];
 .agrar.given_names: .agrar.female_names,.agrar.male_names;
 .agrar.remove_names: `$("Dr.";"dr.";"Dr";"dr";"néhai";"Néhai");
 
@@ -103,7 +107,7 @@
   };
 
 .agrar.remove_dots:{[word]
-  ssr[word;".";""]
+  ssr[;",";" "] ssr[;".";""] word
   };
 
 .agrar.remove_apostrophes:{[word]
@@ -184,8 +188,8 @@
   if[any (1 _ np) in .agrar.male_names; :`male;];
   if[any (1 _ np) in .agrar.female_names; :`female;];
 
-  nm: " " sv string (`$ " " vs n) except .agrar.remove_names;
-  if[nm like "*né"; :`female;];
+  nm: string (`$ " " vs n) except .agrar.remove_names;
+  if[any nm like "*né"; :`female;];
 
   :`unknown;
   };
