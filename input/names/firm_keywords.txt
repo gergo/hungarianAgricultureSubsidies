@@ -10,6 +10,7 @@ Baráti Kör
 Baráti köre
 barátok Kör
 Baromfi
+Batári Kör
 birtok
 BT
 Club
@@ -34,6 +35,8 @@ Gazdaság
 Gondnokság
 Gyülekezet
 Hegypásztor Kör
+Helytörténeti
+Húsüzem
 hivatal
 Igazgatóság
 Intézet
@@ -47,6 +50,7 @@ KFT
 Kht
 kkt
 Klub
+Konzervipari
 Kórház
 Közösség
 Központ
@@ -55,6 +59,7 @@ Lelkészség
 llamkincst
 Lovas Kör
 Megyei Jogú
+Mesterséges
 Minisztérium
 Művelődési Ház
 Múzeum
@@ -69,12 +74,16 @@ Parókia
 Pincészet
 Plébánia
 Polgárőrség
+Rendház
 Rt.
+ Rt
 Sport Kör
 Sportklub
 Sportkör
 Szakképzési
+Számvevőség
 Székely Kör
+Szent Mauríciusz
 Szervezet
 Szerzetesrend
 szolgálat
@@ -83,12 +92,15 @@ Szolgáltató
 Szövetekezet
 Szövetkezet
 Szövetség
+Tartománya
 Társaság
 Társegyház
 Társulás
 Társulat
 Tejfeldolgozó
 Tejfelvásárló
+Termékenyítő
+Testedzők köre
 Testgyakorlók Kör
 Testület
 TÉSZ
@@ -101,6 +113,7 @@ Vállalat
 Vállalkozás
 Városgondnoksága
 Városi Kincstár
+Vegyipari
 Zarándokház
 Zártkörüen
 Zártkörűen
