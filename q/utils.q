@@ -169,6 +169,16 @@
   tbl
   };
 
+.agrar.load_raw:{[]
+  data_2010: .agrar.read_2010_file[];
+  files: system "ls ",.agrar.input, "utf8_*csv";
+  raw_data: data_2010, raze .agrar.read_file each files;
+  count select distinct name,zip,settlement,address from raw_data;
+  // 532221
+  count select distinct name,zip,settlement,address from .data.full;
+  // 518196
+  };
+
 .agrar.load_csvs:{[]
   if[.agrar.raw_loaded;:.agrar.raw];
   .agrar.log "loading raw CSVs";
