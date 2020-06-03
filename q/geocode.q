@@ -18,9 +18,11 @@ system "l ../q/utils.q";
 
   raw: update index:i from raw;
 
-  // remove probable data errors:
+  // remove probable data errors
   raw: delete from raw where not formatted_address like "*Hungary";
+  raw: select from raw where accuracy in `APPROXIMATE`RANGE_INTERPOLATED;
   raw: delete from raw where postcode<>zip;
+  raw: update formatted_address: {[a;p;s]`$ ssr[;string[s],", ";""]ssr[;", ",string[p]," Hungary";""] string a}'[geocoded_address;postcode;settlement] from update geocoded_address: formatted_address from raw;
   raw
   };
 
