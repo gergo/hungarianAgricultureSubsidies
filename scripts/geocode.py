@@ -126,52 +126,56 @@ def process_file(input_filename, output_filename):
     results = []
     # Go through each address in turn
     for index, row in data.iterrows():
-        # We know that these addresses are in Hungary, and there's a column for county, so add this for accuracy.
-        # (remove this line / alter for your own dataset)
-        address = row[address_column_name] + ',Hungary'
-        # While the address geocoding is not finished:
-        geocoded = False
-        geocode_result = None
-        while geocoded is not True:
-            # Geocode the address with google
-            try:
-                geocode_result = get_google_results(address, API_KEY, return_full_response=RETURN_FULL_RESULTS)
-            except Exception as e:
-                logger.exception(e)
-                logger.error("Major error with {}".format(address))
-                logger.error("Skipping!")
-                geocoded = True
-
-            # If we're over the API limit, backoff for a while and try again later.
-            if geocode_result['status'] == 'OVER_QUERY_LIMIT':
-                logger.info("Hit Query Limit! Backing off for a bit.")
-                time.sleep(BACKOFF_TIME * 60)  # sleep for 30 minutes
-                geocoded = False
-            else:
-                # If we're ok with API use, save the results
-                # Note that the results might be empty / non-ok - log this
-                if geocode_result['status'] != 'OK':
-                    logger.warning("Error geocoding {}: {}".format(address, geocode_result['status']))
-                logger.debug("Geocoded: {}: {}".format(address, geocode_result['status']))
-                geocode_result['zip'] = row['zip']
-                geocode_result['settlement'] = row['settlement']
-                geocode_result['address'] = row['address']
-                geocode_result['query'] = row['query']
-                results.append(geocode_result)
-                geocoded = True
-
-        # Print status every 100 addresses
-        if len(results) % 100 == 0:
-            logger.info("Completed {} of {} address".format(len(results), len(data)))
-
-        # Every 500 addresses, save progress to file(in case of a failure so you have something!)
-        if len(results) % 500 == 0:
-            pd.DataFrame(results).to_csv("{}_bak".format(output_filename))
+        process_row(results, len(data), output_filename, row)
 
     # All done
     logger.info("Finished geocoding all addresses")
     # Write the full results to csv using the pandas library.
     pd.DataFrame(results).to_csv(output_filename, encoding='utf8', index_label='index')
+
+
+def process_row(results, data_len, output_filename, row):
+    # We know that these addresses are in Hungary, and there's a column for county, so add this for accuracy.
+    # (remove this line / alter for your own dataset)
+    address = row[address_column_name] + ',Hungary'
+    # While the address geocoding is not finished:
+    geocoded = False
+    geocode_result = None
+    while geocoded is not True:
+        # Geocode the address with google
+        try:
+            geocode_result = get_google_results(address, API_KEY, return_full_response=RETURN_FULL_RESULTS)
+        except Exception as e:
+            logger.exception(e)
+            logger.error("Major error with {}".format(address))
+            logger.error("Skipping!")
+            geocoded = True
+
+        # If we're over the API limit, backoff for a while and try again later.
+        if geocode_result['status'] == 'OVER_QUERY_LIMIT':
+            logger.info("Hit Query Limit! Backing off for a bit.")
+            time.sleep(BACKOFF_TIME * 60)  # sleep for 30 minutes
+            geocoded = False
+        else:
+            # If we're ok with API use, save the results
+            # Note that the results might be empty / non-ok - log this
+            if geocode_result['status'] != 'OK':
+                logger.warning("Error geocoding {}: {}".format(address, geocode_result['status']))
+            logger.debug("Geocoded: {}: {}".format(address, geocode_result['status']))
+            geocode_result['zip'] = row['zip']
+            geocode_result['settlement'] = row['settlement']
+            geocode_result['address'] = row['address']
+            geocode_result['query'] = row['query']
+            results.append(geocode_result)
+            geocoded = True
+
+        # Print status every 100 addresses
+        if len(results) % 100 == 0:
+            logger.info("Completed {} of {} address".format(len(results), data_len))
+
+        # Every 500 addresses, save progress to file(in case of a failure so you have something!)
+        if len(results) % 500 == 0:
+            pd.DataFrame(results).to_csv("{}_bak".format(output_filename))
 
 
 def test_api():

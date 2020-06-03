@@ -20,8 +20,12 @@
   `$data
   };
 
-.agrar.male_names: .agrar.download_names "osszesffi";
-.agrar.female_names: .agrar.download_names "osszesnoi";
+.agrar.name_overrides:{[nm]
+  `$ system "cat ",.agrar.names_dl,nm,".txt"
+  };
+
+.agrar.male_names: distinct .agrar.name_overrides["men"], .agrar.download_names["osszesffi"];
+.agrar.female_names: distinct .agrar.name_overrides["women"], .agrar.download_names["osszesnoi"];
 .agrar.given_names: .agrar.female_names,.agrar.male_names;
 .agrar.remove_names: `$("Dr.";"dr.";"Dr";"dr";"néhai";"Néhai");
 
@@ -51,7 +55,7 @@
   `$.agrar.remove_spaces[a1]
   };
 
-.agrar.fix_missing_zips:{[data]
+.agrar.fix_missing_addresses:{[data]
   missing_address: select from data where zip=0N;
   distinct_winners: select distinct name,zip from data;
   name_counts: select cnt: count i by name from distinct_winners;
@@ -82,7 +86,7 @@
   (hsym `$file) 0: "," 0: data;
   };
 
-.agrar.process_file:{[f]
+.agrar.read_file:{[f]
   yr: `$ ssr[;".csv";""] ssr[f;.agrar.input,"utf8_";""];
   .agrar.log "  processing raw data for ", string yr;
   t: ("SISSSSSJ";enlist";")0:`$f;
@@ -91,51 +95,98 @@
   t
   };
 
-.agrar.capitalize:{[word]
-  (upper 1 # word),lower 1 _ word
+.agrar.read_2010_file:{
+  .agrar.log "  processing raw data for 2010";
+  t: ("SISSSSSJJS";enlist",")0:`$.agrar.input, "old_2010.csv";
+  t: `name`zip`settlement`address`reason`program`source`amount`total_amount`year xcol t;
+  delete total_amount from t
   };
 
 .agrar.remove_whitespace:{[word]
-  ssr[string[word];"  ";" "]
-  }
+  ssr[word;"  ";" "]
+  };
+
+.agrar.remove_dots:{[word]
+  ssr[;",";" "] ssr[;".";""] word
+  };
+
+.agrar.remove_apostrophes:{[word]
+  ssr[word;"\\\"";""]
+  };
+
+.agrar.ugly_upper:{[w] ssr[;"á";"Á"]ssr[;"é";"É"]ssr[;"í";"Í"]ssr[;"ó";"Ó"]ssr[;"ö";"Ö"]ssr[;"ő";"Ő"]ssr[;"ú";"Ú"]ssr[;"ü";"Ü"]ssr[;"ű";"Ű"] upper w};
+.agrar.ugly_lower:{[w] ssr[;"Á";"á"]ssr[;"É";"é"]ssr[;"Í";"í"]ssr[;"Ó";"ó"]ssr[;"Ö";"ö"]ssr[;"Ő";"ő"]ssr[;"Ú";"ú"]ssr[;"Ü";"ü"]ssr[;"Ű";"ű"] lower w};
+
+.agrar.lowerChars: ("á";"é";"í";"ó";"ö";"ő";"ú";"ü";"ű");
+.agrar.upperChars: ("Á";"É";"Í";"Ó";"Ö";"Ő";"Ú";"Ü";"Ű");
+.agrar.toUpperMap:(.agrar.lowerChars!.agrar.upperChars);
+.agrar.capitalize:{[word]
+  startsWithSpecialChar: (2#word) in .agrar.lowerChars;
+  $[startsWithSpecialChar;
+    :(.agrar.toUpperMap 2#word),.agrar.ugly_lower 2_word;
+    :(upper 1 # word),.agrar.ugly_lower 1 _ word]
+  };
 
 .agrar.fix_name:{[nm]
-  `$ " " sv .agrar.capitalize each " " vs .agrar.remove_whitespace nm
+  `$ " " sv .agrar.capitalize each " " vs .agrar.remove_whitespace .agrar.remove_dots .agrar.remove_apostrophes string nm
+  };
+
+.agrar.process_csv:{[tbl]
+  .agrar.log "Processing  - ", raze string exec year from 1 # tbl;
+  .agrar.log "Records:  - ", string count tbl;
+
+  tbl: delete from tbl where amount<0;
+  .agrar.log "<0 amounts dropped - ", string count tbl;
+
+  dropping: raze exec sum amount from tbl where name=`,address=`;
+  tbl: delete from tbl where name=`,address=`;
+  .agrar.log "records without name and address dropped totaling: ", raze string dropping;
+
+  .agrar.log "unique names: ", string count select distinct name from tbl;
+  tbl: update name:.agrar.fix_name'[name] from tbl;
+  .agrar.log "Trivial name errors fixed; unique names: ", string count select distinct name from tbl;
+
+  tbl: update name_parts:{count " " vs string x}'[name] from tbl;
+
+  tbl: update is_firm:1b from tbl where name_parts>8;
+  .agrar.log "marking firms based on keywords";
+  raw_firm_keywords: read0 hsym `$"../input/names/firm_keywords.txt";
+  firm_keywords: {"*",x,"*"} each .agrar.ugly_upper each raw_firm_keywords;
+
+  // keyword-based matching is quite slow so only run on rows we have not categorized yet
+  known_firms: select from tbl where is_firm;
+  tbl: delete from tbl where is_firm;
+  tbl: update upper_name: {`$ .agrar.ugly_upper string x}'[name] from tbl;
+  tbl: known_firms,delete upper_name from update is_firm:1b from tbl where any upper_name like/: firm_keywords;
+
+  .agrar.log "marking land-based wins";
+  land_based_categories: `$("Területalapú támogatás";"Zöldítés támogatás igénylése");
+  tbl: update land_based: 1b from tbl where reason in land_based_categories;
+  .agrar.log "determinig gender of winners";
+  tbl: update gender: .agrar.determine_gender'[name] from tbl where not is_firm;
+  .agrar.log "normalize addresses";
+  tbl: update address: .agrar.normalize_address'[address] from tbl;
+  tbl
+  };
+
+.agrar.load_raw:{[]
+  data_2010: .agrar.read_2010_file[];
+  files: system "ls ",.agrar.input, "utf8_*csv";
+  raw_data: data_2010, raze .agrar.read_file each files;
+  count select distinct name,zip,settlement,address from raw_data;
+  // 532221
+  count select distinct name,zip,settlement,address from .data.full;
+  // 518196
   };
 
 .agrar.load_csvs:{[]
   if[.agrar.raw_loaded;:.agrar.raw];
   .agrar.log "loading raw CSVs";
   files: system "ls ",.agrar.input, "utf8_*csv";
-  raw_data: raze .agrar.process_file each files;
-  .agrar.log "raw files loaded";
+  data_2010: .agrar.process_csv .agrar.read_2010_file[];
+  raw_data: data_2010, raze {.agrar.process_csv .agrar.read_file x} each files;
 
-  raw_data: update name:.agrar.fix_name'[name] from raw_data;
-  raw_data: update name_parts:{count " " vs string x}'[name] from raw_data;
-
-  raw_data: update is_firm:1b from raw_data where name_parts>5;
-  .agrar.log "marking firms based on keywords";
-  firm_keywords: {"*",x,"*"} each upper ("BT";"KFT";"Alapítvány";"Egyesület";"ZRT";"VÁLLALAT";"Iroda";"Önkormányzat";
-    "Község";"Társulat";"Szövetkezet";"Asztaltársaság";"Vadásztársaság";"Intézmény";"Társulás";"Közösség";"Központ";
-    "Társaság";"szolgálat";"Plébánia";"Szervezet";"Szövetség";"Sportklub";"Igazgatóság";"Intézet";"Klub";"Minisztérium";
-    "Baráti köre";"llamkincst";"Egyetem";"hivatal";"Zöldség-Gyümölcs";"Kfc";"Tsz";"birtok";"Pincészet";"Egyéni cég";
-    "Kkt.";"Baráti Kör"; "Egyesülés";"Gazdakör";"Olvasókör";"Club";"Társegyház";"Szerzetesrend";"Egyház";"Lelkészség";
-    "Gazdaság";"Rt.";"Gyülekezet";"Erdőszöv";"Lovas Kör";"Ipartestület";"Nőegylet";"Polgárőrség";"Vadászegylet";
-    "Fióktelepe";"Baromfi";"Hegypásztor Kör";"és vidéke";"TÉSZ";"Sport Kör";"Nővérek";"Sportkör";"Egylet";"Iskola";
-    "Erdőgazdálkodás";"Faiskola";"Kórház";"Múzeum";"Zarándokház";"Olvsdó kör";"Agrárkamara";"Agrár kamara";"Állami";
-    "GAMESZ";"Testület";"Apostoli Exarchátus";"Parókia";"Gondnokság";"Szakképzési";"barátok Kör";" Megyei ";
-    "Testgyakorlók Kör";"Megyei Jogú";"Városgondnoksága");
-  raw_data: update is_firm:1b from raw_data where any upper[name] like/: firm_keywords;
-
-  .agrar.log "marking land-based wins";
-  land_based_categories: `$("Területalapú támogatás";"Zöldítés támogatás igénylése");
-  raw_data: update land_based: 1b from raw_data where reason in land_based_categories;
-  .agrar.log "determinig gender of winners";
-  raw_data: update gender: .agrar.determine_gender'[name] from raw_data where not is_firm;
-  .agrar.log "normalize addresses";
-  raw_data: update address: .agrar.normalize_address'[address] from raw_data;
-
-  raw_data: .agrar.fix_missing_zips[raw_data];
+  raw_data: .agrar.fix_missing_addresses[raw_data];
   .agrar.raw: raw_data;
   .agrar.raw_loaded: 1b;
   .agrar.raw
@@ -147,8 +198,8 @@
   if[any (1 _ np) in .agrar.male_names; :`male;];
   if[any (1 _ np) in .agrar.female_names; :`female;];
 
-  nm: " " sv string (`$ " " vs n) except .agrar.remove_names;
-  if[nm like "*né"; :`female;];
+  nm: string (`$ " " vs n) except .agrar.remove_names;
+  if[any nm like "*né"; :`female;];
 
   :`unknown;
   };
@@ -164,10 +215,9 @@
   delete is_firm,name_parts from data
   };
 
-.agrar.create_zip_overrides:{[dataset]
-  t:([] zip_orig: exec distinct zip from dataset where string[zip] like "1*");
-  t1: update zip_mod:{ "I"$(-1 _ string[x]),"0"}'[zip_orig] from t;
-  t1[`zip_orig]!t1[`zip_mod]
+.agrar.create_bp_zip_key:{[dataset]
+  t:([] zip: exec distinct zip from dataset where string[zip] like "1*");
+  t1: update zip_key:{ "I"$(-1 _ string[x]),"0"}'[zip] from t
   };
 
 oj:{
@@ -175,3 +225,24 @@ oj:{
   lyx:(cols lxy) xcols 0!lj[y;x]; // Right join (plus remove keys and prepare cols order for union)
   (cols key x) lxy union lyx      // Union (plus retrieve keys)
   };
+
+.agrar.assert:{[testFn;input;errorMsg;successMsg]
+  $[testFn input;
+    [
+      .agrar.log[errorMsg];
+      show input;
+    ];
+    [
+      .agrar.log[successMsg];
+    ]
+  ];
+  };
+
+// works but very slow compared to native approach
+.agrar.capitalize_py: {raze system "python -c \"print(\\\"",x,"\\\".capitalize())\""};
+.agrar.upper_py:{raze system "python -c \"print(\\\"",x,"\\\".upper())\""};
+.agrar.lower_py:{raze system "python -c \"print(\\\"",x,"\\\".lower())\""};
+.agrar.toPythonList: {"[",("," sv "'",'x,'"'"),"]"};
+.agrar.pythonUpper: {system "python -c \"print([nm.title() for nm in ",x,"])\""};
+.agrar.toQList: {-1_'1_'", " vs -1_1_x};
+.agrar.customUpper: {`$ .agrar.toQList first .agrar.pythonUpper .agrar.toPythonList x};

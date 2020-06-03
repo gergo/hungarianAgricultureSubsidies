@@ -16,15 +16,15 @@ Shell scripts do the work. You need a unix command line so either a Linux or Mac
    - ```02_download_geo_data_sh```
       - Download settlement-level data from the Hungarian Statistics Agency [KSH](http://www.ksh.hu/docs/helysegnevtar/hnt_letoltes_2019.xls)
       - Extract sheets from the excel
-   - ```03_geocode_pre.sh```
+   - ```05_geocode_pre.sh```
       - the shell script just calls a Q script that will load the full agricultural subsidies datased into memory
       - extract the unique zip+city+address triplets
       - and save them to csvs, each containing 2500 entries
-   - ```04_geocode.sh```
+   - ```06_geocode.sh```
       - run ```geocode.py``` python script on all of the csvs that were created in the previous step
       - call Google Maps API to geocode the addresses -> get latitude/longitude and a standardized, clean address set
       - TODO: load all of the geocoded addresses into memory and check which ones failed. If not too many then fix manually.
-   - ```05_export_to_csvs.sh```
+   - ```07_export_to_csvs.sh```
       - load all datasets into memory
       - merge them
       - save them to normalized csvs so it's easier to re-use in other projects
