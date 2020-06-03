@@ -114,12 +114,11 @@
   ssr[word;"\\\"";""]
   };
 
-.agrar.ugly_upper:{[w] ssr[;"á";"Á"]ssr[;"é";"É"]ssr[;"í";"Í"]ssr[;"ó";"Ó"]ssr[;"ö";"Ö"]ssr[;"ő";"Ő"]ssr[;"ú";"Ú"]ssr[;"ü";"Ü"]ssr[;"ű";"Ű"] upper w};
-.agrar.ugly_lower:{[w] ssr[;"Á";"á"]ssr[;"É";"é"]ssr[;"Í";"í"]ssr[;"Ó";"ó"]ssr[;"Ö";"ö"]ssr[;"Ő";"ő"]ssr[;"Ú";"ú"]ssr[;"Ü";"ü"]ssr[;"Ű";"ű"] lower w};
-
-.agrar.lowerChars: ("á";"é";"í";"ó";"ö";"ő";"ú";"ü";"ű");
-.agrar.upperChars: ("Á";"É";"Í";"Ó";"Ö";"Ő";"Ú";"Ü";"Ű");
+.agrar.lowerChars: ("áéíóöőúüű");
+.agrar.upperChars: ("ÁÉÍÓÖŐÚÜŰ");
 .agrar.toUpperMap:(.agrar.lowerChars!.agrar.upperChars);
+.agrar.ugly_upper:{[w]upper w^'(.agrar.toUpperMap)@/:w};
+.agrar.ugly_lower:{[w]upper w^'(.agrar.upperChars!.agrar.lowerChars)@/:w};
 .agrar.capitalize:{[word]
   startsWithSpecialChar: (2#word) in .agrar.lowerChars;
   $[startsWithSpecialChar;
