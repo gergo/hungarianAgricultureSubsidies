@@ -127,7 +127,7 @@
   };
 
 .agrar.fix_name:{[nm]
-  `$ " " sv .agrar.capitalize each " " vs .agrar.remove_whitespace .agrar.remove_dots .agrar.remove_apostrophes string nm
+  `$ " " sv .agrar.capitalize each raze ("-" vs) each " " vs .agrar.remove_whitespace .agrar.remove_dots .agrar.remove_apostrophes string nm
   };
 
 .agrar.process_csv:{[tbl]
