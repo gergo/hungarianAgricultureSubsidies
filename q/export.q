@@ -132,14 +132,17 @@ system "l ../q/elections.q";
   settlement,address from select sum amount by name,settlement,address from .data.ppl where address<>`) where cnt>5;
   };
 
-.agrar.yearly_diffs:{[]
-  yearly_amounts: select sum amount by name,addr: address ^ formatted_address,year,zip,settlement from .data.full where land_based;
+// function to generate yearly diff based on dynamic constraints
+// .agrar.yearly_diffs[tbl:.data.full;constraint:(`land_based;(=;`zip;8086));limit:1000000;records:1]
+.agrar.yearly_diffs:{[tbl;constraint;limit;records]
+  yearly_amounts: ?[tbl;constraint;(`name`addr`year`zip`settlement)!(`name;(^;`address;`formatted_address);`year;`zip;`settlement);(enlist `amount)!enlist(sum;`amount)];
   winners: select distinct name,addr,zip,settlement from yearly_amounts;
   zeros: winners cross update amount:0 from select distinct year from yearly_amounts;
   diffs: update diff: deltas amount by addr,zip,settlement from select names: distinct name,sum amount by addr,zip,settlement,year from zeros, () xkey yearly_amounts;
   diffs: delete from diffs where year = `$ string min "I"$ string exec distinct year from diffs;
-  diffs: select from diffs where 250000000<abs diff;
-  (select from (`diff xdesc diffs) where ({x in 3#x};i) fby ([]zip;year)),select from (`diff xasc diffs) where ({x in 3#x};i) fby ([]zip;year)
+  diffs: select from diffs where limit<abs diff;
+  ret: () xkey (select from (`diff xdesc diffs) where ({[r;x]x in r#x}[records;];i) fby ([]zip;year)),select from (`diff xasc diffs) where ({[r;x]x in r#x}[records;];i) fby ([]zip;year);
+  xcols[`addr`zip`settlement`year`amount`diff;ret]
   };
 
 if[`EXPORT=`$.z.x[0];
