@@ -32,6 +32,9 @@ system "l ../q/elections.q";
   .agrar.save_csv["win_by_settlements"; .data.win_by_settlements];
 
   .agrar.save_csv["avg_win_by_gender"; select avg_win: sum amt%count i by gender,year from (select amt: sum amount by name,settlement,zip,address,year,gender from .data.full where gender<>`unknown,not is_firm)];
+
+  t: .agrar.load_vars[];
+  .agrar.save_csv["misc_vars";t];
   };
 
 .agrar.export.init:{[]

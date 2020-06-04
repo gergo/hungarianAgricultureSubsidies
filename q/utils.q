@@ -107,7 +107,7 @@
   };
 
 .agrar.remove_dots:{[word]
-  ssr[;",";" "] ssr[;".";""] word
+  ssr[;"-, ";" "] ssr[;" -";"-"] ssr[;"- ";"-"] ssr[;",";" "] ssr[;".";""] word
   };
 
 .agrar.remove_apostrophes:{[word]
@@ -128,7 +128,7 @@
   };
 
 .agrar.fix_name:{[nm]
-  `$ " " sv .agrar.capitalize each raze ("-" vs) each " " vs .agrar.remove_whitespace .agrar.remove_dots .agrar.remove_apostrophes string nm
+  `$ " " sv .agrar.capitalize each string (`$ raze ("-" vs) each " " vs .agrar.remove_whitespace .agrar.remove_dots .agrar.remove_apostrophes string nm) except `
   };
 
 .agrar.process_csv:{[tbl]
@@ -169,14 +169,16 @@
   tbl
   };
 
-.agrar.load_raw:{[]
+.agrar.load_vars:{[]
+  t: ([] var_name: `symbol$(); val: `int$());
   data_2010: .agrar.read_2010_file[];
   files: system "ls ",.agrar.input, "utf8_*csv";
   raw_data: data_2010, raze .agrar.read_file each files;
-  count select distinct name,zip,settlement,address from raw_data;
-  // 532221
-  count select distinct name,zip,settlement,address from .data.full;
-  // 518196
+  `t insert (`raw_entity_count; count select distinct name,zip,settlement,address from raw_data);
+  `t insert (`clean_entity_count; count select distinct name,zip,settlement,address from .data.full);
+  `t insert (`raw_address_count; count select distinct zip,settlement,address from raw_data);
+  `t insert (`clean_address_count; count select distinct zip,settlement,address from .data.full);
+  t
   };
 
 .agrar.load_csvs:{[]
