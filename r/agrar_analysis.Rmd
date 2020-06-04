@@ -6,13 +6,6 @@ date: "2020 June"
 fig_height: 8
 urlcolor: blue
 output:
-  word_document: default
-  html_document:
-    df_print: paged
-    toc: true
-    theme: united
-    extra_dependencies: "subfig"
-    highlight: pygments
   pdf_document:
     fig_height: 3.1
     fig_width: 5.1
@@ -22,6 +15,13 @@ output:
     toc_depth: 3
     extra_dependencies: "subfig"
     highlight: pygments
+  html_document:
+    df_print: paged
+    toc: true
+    theme: united
+    extra_dependencies: "subfig"
+    highlight: pygments
+  word_document: default
 header-includes:
     - \usepackage{float}
     - \usepackage{dcolumn}
@@ -105,14 +105,15 @@ agrar_full$settlement_id <- NULL
 
 settlement_stats <- readr::read_csv(paste0(data_in, "settlement_stats.csv"))
 settlement_stats$ksh_id <- as.integer(settlement_stats$ksh_id)
-settlement_stats$settlement_type <- factor(settlement_stats$settlement_type,
-                                           ordered = TRUE,
-                                           levels = c("Budapest","megyeszékhely","járás székhely","város","nagyközség","község"))
+settlement_stats$settlement_type <- factor(settlement_stats$settlement_type, ordered = TRUE,
+  levels = c("Budapest","megyeszékhely","járás székhely","város","nagyközség","község"))
 settlement_stats$county <- as.factor(settlement_stats$county)
 settlement_stats$district_capital <- NULL
 settlement_stats$district_code <- NULL
 settlement_stats$county_capital <- NULL
 settlement_stats$settlement_mod <- NULL
+
+misc_vars <- readr::read_csv(paste0(data_in, "misc_vars.csv"))
 
 stats_by_county <- settlement_stats %>%
   select(county,area,population,homes) %>%
@@ -274,7 +275,7 @@ During exploratory data analysis I found multiple versions of some entities. Fix
 - **Character cases**: Some names had multiple versions with inconsistent capitalizations (eg. all caps or 2 upper-case starting characters) so I split names by spaces and capitalized only the first character in each name part. Unfortunately, the built-in `upper`/`lower` functions of Q could not handle Hungarian characters with accents so I had to implement custom logic to do these transformations.
 - **Remove dots**: Some names had multiple variations based on how abbreviations in their name parts were written: some had "." while other rows did not.
 
-The above steps reduced the unique number of entities by more than 14000 from 532221 to 518196.
+The above steps reduced the unique number of entities by `r misc_vars[misc_vars$var_name=="raw_entity_count",]$val-misc_vars[misc_vars$var_name=="clean_entity_count",]$val` from `r misc_vars[misc_vars$var_name=="raw_entity_count",]$val` to `r misc_vars[misc_vars$var_name=="clean_entity_count",]$val`.
 
 ## Identify institutions
 
@@ -371,7 +372,7 @@ The address fields are missing for almost 300 data points totaling almost 9.6 bi
 
 ### Geocoding
 
-To be able to aggregate agricultural subsidies on the beneficiary level it was important to have a geographical information that can be used as a key along with the name. After several iterations of address cleaning efforts I came up with the idea to use some geocoding API to convert all addresses to a standardized format. Unfortunately, I did not find an accurate, free service so I ended up using the [Google Maps Geocoding Api](https://maps.googleapis.com/maps/api/geocode/). The raw data has 424 627 unique addresses and each one of these had to be sent to the API for geocoding. I created batches of addresses to geocode and used a python script to process them. The service is free only up to a limit and geocoding all addresses would take almost a day without parallellization. I saved down the results so I wouldn't have to do this slow, somewhat manual process another time for addresses that were already geocoded successfully. The API is sensitive to permutations in the address fields so I tried to find an order that yielded the highest success rate. Unfortunately, Google Maps could not convert some addresses so in those cases I just use the original format. One extra benefit of this approach was that all addresses that could be processed now have geo-coordinates. Using the latitude and longitude information we can create a map showing in which areas those beneficiaries reside who got most of the subsidies. After geocoding the number of unique addresses decreased by more than 25 000 so aggregating will be much more accurate.
+To be able to aggregate agricultural subsidies on the beneficiary level it was important to have a geographical information that can be used as a key along with the name. After several iterations of address cleaning efforts I came up with the idea to use some geocoding API to convert all addresses to a standardized format. Unfortunately, I did not find an accurate, free service so I ended up using the [Google Maps Geocoding Api](https://maps.googleapis.com/maps/api/geocode/). The raw data has `r misc_vars[misc_vars$var_name=="raw_address_count",]$val` unique addresses and each one of these had to be sent to the API for geocoding. I created batches of addresses to geocode and used a python script to process them. The service is free only up to a limit and geocoding all addresses would take almost a day without parallellization. I saved down the results so I wouldn't have to do this slow, somewhat manual process another time for addresses that were already geocoded successfully. The API is sensitive to permutations in the address fields so I tried to find an order that yielded the highest success rate. Unfortunately, Google Maps could not convert some addresses so in those cases I just use the original format. One extra benefit of this approach was that all addresses that could be processed now have geo-coordinates. Using the latitude and longitude information we can create a map showing in which areas those beneficiaries reside who got most of the subsidies. After geocoding the number of unique addresses decreased to `r misc_vars[misc_vars$var_name=="clean_address_count",]$val` by `r misc_vars[misc_vars$var_name=="raw_address_count",]$val-misc_vars[misc_vars$var_name=="clean_address_count",]$val` so aggregating will be much more accurate.
 
 ### Geographical information and statistics
 
@@ -506,7 +507,7 @@ ggplot(sum_by_address %>% ungroup() %>% select(year,amount) %>% mutate(amount = 
   theme_minimal() +
   theme(legend.position = "none")
 ggsave(paste0(data_out, "violin_by_address.png"))
-ggsave(paste0(data_out, "violin_by_address.png"))
+ggsave(paste0(data_out, "violin_by_address.pdf"))
 ```
 
 The distribution visually is very similar to what the raw payments looked like. The top 10% accounts for more than 75% of the overall payments. On the log scale there is a steady increase between the bins except for the top 10% where the jump is higher.
@@ -745,11 +746,7 @@ ggsave(paste0(data_out, "2d_land_based_trends_stacked.png"))
 
 # Settlement type analysis
 
-averages by county, district. If possible put on a map.
-
-Additional variables from KSH (http://statinfo.ksh.hu/Statinfo/index.jsp) 
-
-The amount of money won by beneficiaries is distributed among settlement types. It is important to note that the address is the official address of the firm or individual who received the money, not the address of the land, for which the money was given. Most of the actual land belongs to villages and small towns but the proporion of the subsidies received by entities who are based in the country capital or county capitals is quite significant.
+The amount of money won by beneficiaries who reside in various settlement types. _It is important to note that the address is the official address of the firm or individual who received the money, not the address of the land, for which the money was given._ Most of the actual land belongs to villages and small towns but the proporion of the subsidies received by entities who are based in the country capital or county capitals is quite significant.
 
 ```{r fig.cap='Subsidies based on the settlement type', fig.subcap=c('Sum amounts in billion HUF', 'Proportion of the groups'), fig.ncol = 2, out.width = "50%", fig.align = "center"}
 ggplot(data = aggregate(amount ~ year*settlement_type,sum_by_dummies,"sum"), aes(x = amount/1000000000, y = year, fill = settlement_type)) + 
@@ -767,6 +764,36 @@ ggplot(data = aggregate(amount ~ year*settlement_type,sum_by_dummies,"sum"), aes
   scale_fill_viridis(discrete=TRUE, direction=1, option = "D", guide = guide_legend(reverse = TRUE))
 ggsave(paste0(data_out, "2d_sum_settlement_type_stacked.png"))
 ```
+
+## Address Sharing
+
+```{r include=FALSE, echo = FALSE, message = FALSE, warning = FALSE}
+misc_same_addresses <- readr::read_csv(paste0(data_in, "misc_same_addresses.csv"))
+misc_same_addresses <- misc_same_addresses %>%
+  inner_join(settlement_stats, by = "ksh_id")
+```
+
+The total amount of agricultural subsidies distributed since 2010 is `r misc_vars[misc_vars$var_name=="total_amount",]$val`. From this amount `r misc_vars[misc_vars$var_name=="total_amount_address_sharing",]$val` went to beneficiaries where individuals and institutions share the address. This is almost 10% of the total amount so it's worth checking if there is some pattern. The proportion of the amount of money received by firms versus individuals seems random for all settlement types except for Budapest. In the capital the share of individuals is lower for higher total amount.
+
+```{r fig.cap='Proportion of subsidies received by firms when sharing address with individuals', fig.subcap=c('All settlement types', 'Budapest and county capitals'), fig.ncol = 2, out.width = "50%", fig.align = "center"}
+ggplot(data = misc_same_addresses, aes(x = log10(total), y = f_pct,  color = settlement_type)) +
+  geom_point(shape = 1) +
+  labs(x = "", y = "") +
+  theme_minimal()
+ggsave(paste0(data_out, "scatter_firm_fraction_all.png"))
+ggsave(paste0(data_out, "scatter_firm_fraction_all.pdf"))
+
+ggplot(data = misc_same_addresses %>%
+              filter(settlement_type %in% c("Budapest", "megyeszékhely", "járás székhely")),
+       aes(x = log10(total), y = f_pct,  color = settlement_type)) +
+  geom_point(shape = 1) +
+  geom_smooth(method = lm) +
+  labs(x = "", y = "") +
+  theme_minimal()
+ggsave(paste0(data_out, "scatter_firm_fraction_cities.png"))
+ggsave(paste0(data_out, "scatter_firm_fraction_cities.pdf"))
+```
+
 
 # Big Winners and Losers
 
