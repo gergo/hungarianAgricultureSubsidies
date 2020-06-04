@@ -117,13 +117,13 @@
 .agrar.lowerChars: ("áéíóöőúüű");
 .agrar.upperChars: ("ÁÉÍÓÖŐÚÜŰ");
 .agrar.toUpperMap:(.agrar.lowerChars!.agrar.upperChars);
-.agrar.ugly_upper:{[w]upper w^'(.agrar.toUpperMap)@/:w};
-.agrar.ugly_lower:{[w]upper w^'(.agrar.upperChars!.agrar.lowerChars)@/:w};
+.agrar.upper:{[w]upper w^'(.agrar.toUpperMap)@/:w};
+.agrar.lower:{[w]lower w^'(.agrar.upperChars!.agrar.lowerChars)@/:w};
 .agrar.capitalize:{[word]
-  startsWithSpecialChar: (2#word) in .agrar.lowerChars;
+  startsWithSpecialChar: (2#word) in 0N 2 # .agrar.lowerChars;
   $[startsWithSpecialChar;
-    :(.agrar.toUpperMap 2#word),.agrar.ugly_lower 2_word;
-    :(upper 1 # word),.agrar.ugly_lower 1 _ word]
+    :(.agrar.toUpperMap 2#word),.agrar.lower 2_word;
+    :(upper 1 # word),.agrar.lower 1 _ word]
   };
 
 .agrar.fix_name:{[nm]
@@ -150,12 +150,12 @@
   tbl: update is_firm:1b from tbl where name_parts>8;
   .agrar.log "marking firms based on keywords";
   raw_firm_keywords: read0 hsym `$"../input/names/firm_keywords.txt";
-  firm_keywords: {"*",x,"*"} each .agrar.ugly_upper each raw_firm_keywords;
+  firm_keywords: {"*",x,"*"} each .agrar.upper each raw_firm_keywords;
 
   // keyword-based matching is quite slow so only run on rows we have not categorized yet
   known_firms: select from tbl where is_firm;
   tbl: delete from tbl where is_firm;
-  tbl: update upper_name: {`$ .agrar.ugly_upper string x}'[name] from tbl;
+  tbl: update upper_name: {`$ .agrar.upper string x}'[name] from tbl;
   tbl: known_firms,delete upper_name from update is_firm:1b from tbl where any upper_name like/: firm_keywords;
 
   .agrar.log "marking land-based wins";
