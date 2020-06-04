@@ -103,7 +103,7 @@
   };
 
 .agrar.remove_whitespace:{[word]
-  ssr[word;"  ";" "]
+  {x where not(and':)null x} word
   };
 
 .agrar.remove_dots:{[word]
@@ -120,10 +120,11 @@
 .agrar.upper:{[w]upper w^'(.agrar.toUpperMap)@/:w};
 .agrar.lower:{[w]lower w^'(.agrar.upperChars!.agrar.lowerChars)@/:w};
 .agrar.capitalize:{[word]
+  word: .agrar.lower word;
   startsWithSpecialChar: (2#word) in 0N 2 # .agrar.lowerChars;
   $[startsWithSpecialChar;
-    :(.agrar.toUpperMap 2#word),.agrar.lower 2_word;
-    :(upper 1 # word),.agrar.lower 1 _ word]
+    :(.agrar.toUpperMap 2#word), 2_word;
+    :(upper 1 # word),1_word]
   };
 
 .agrar.fix_name:{[nm]
