@@ -127,6 +127,19 @@ system "l ../q/elections.q";
   // which households contain the most winners (along with the amounts)
   .misc.single_household: select from (`cnt xdesc select nm: enlist name, cnt: count i,sum amount by
   settlement,address from select sum amount by name,settlement,address from .data.ppl where address<>`) where cnt>5;
+
+  .misc.avg_wins: select avg_win: sum amt%count i by gender,year from (select amt: sum amount by name,settlement,zip,address,year,gender from .data.ppl where gender<>`unknown);
+  .agrar.save_csv["avg_win_by_gender"; .misc.avg_wins];
+  };
+
+.agrar.yearly_diffs:{[]
+  yearly_amounts: select sum amount by name,addr: address ^ formatted_address,year,zip,settlement from .data.full where land_based;
+  winners: select distinct name,addr,zip,settlement from yearly_amounts;
+  zeros: winners cross update amount:0 from select distinct year from yearly_amounts;
+  diffs: update diff: deltas amount by addr,zip,settlement from select names: distinct name,sum amount by addr,zip,settlement,year from zeros, () xkey yearly_amounts;
+  diffs: delete from diffs where year = `$ string min "I"$ string exec distinct year from diffs;
+  diffs: select from diffs where 250000000<abs diff;
+  (select from (`diff xdesc diffs) where ({x in 3#x};i) fby ([]zip;year)),select from (`diff xasc diffs) where ({x in 3#x};i) fby ([]zip;year)
   };
 
 if[`EXPORT=`$.z.x[0];
