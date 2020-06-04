@@ -3,6 +3,7 @@
 .agrar.output: .agrar.root,"/../output/";
 .agrar.names_dl: .agrar.root,"/../input/names/";
 .agrar.names_url: "http://www.nytud.mta.hu/oszt/nyelvmuvelo/utonevek/";
+.data.misc_vars: ([var_name: `symbol$()]; val: `symbol$());
 
 .agrar.log:{[msg]
   show string[.z.T],": ",msg;
@@ -170,15 +171,14 @@
   };
 
 .agrar.load_vars:{[]
-  t: ([] var_name: `symbol$(); val: `int$());
   data_2010: .agrar.read_2010_file[];
   files: system "ls ",.agrar.input, "utf8_*csv";
   raw_data: data_2010, raze .agrar.read_file each files;
-  `t insert (`raw_entity_count; count select distinct name,zip,settlement,address from raw_data);
-  `t insert (`clean_entity_count; count select distinct name,zip,settlement,address from .data.full);
-  `t insert (`raw_address_count; count select distinct zip,settlement,address from raw_data);
-  `t insert (`clean_address_count; count select distinct zip,settlement,address from .data.full);
-  t
+  `.data.misc_vars insert (`raw_entity_count; `$ string count select distinct name,zip,settlement,address from raw_data);
+  `.data.misc_vars insert (`clean_entity_count; `$ string count select distinct name,zip,settlement,address from .data.full);
+  `.data.misc_vars insert (`raw_address_count; `$ string count select distinct zip,settlement,address from raw_data);
+  `.data.misc_vars insert (`clean_address_count; `$ string count select distinct zip,settlement,address from .data.full);
+  `.data.misc_vars insert (`total_amount; `$ string exec sum amount from .data.full);
   };
 
 .agrar.load_csvs:{[]

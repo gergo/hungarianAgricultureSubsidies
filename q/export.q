@@ -33,8 +33,9 @@ system "l ../q/elections.q";
 
   .agrar.save_csv["avg_win_by_gender"; select avg_win: sum amt%count i by gender,year from (select amt: sum amount by name,settlement,zip,address,year,gender from .data.full where gender<>`unknown,not is_firm)];
 
-  t: .agrar.load_vars[];
-  .agrar.save_csv["misc_vars";t];
+  .agrar.load_vars[];
+  .agrar.save_csv["misc_vars";.data.misc_vars];
+  .agrar.save_csv["misc_same_addresses";.misc.same_addresses];
   };
 
 .agrar.export.init:{[]
@@ -118,8 +119,12 @@ system "l ../q/elections.q";
   .data.firms: select from .data.full where is_firm;
 
   // Are there individuals and firms that share address?
-  .misc.same_addresses: (select f_amt: sum amount by zip,settlement,address,firm:name from .data.firms) ij
-  `zip`settlement`address xkey select p_amt: sum amount by zip,settlement,address,person: name from .data.ppl;
+  .misc.same_addresses: `ksh_id`zip`settlement`address`total`p_amt`f_amt`p_pct`f_pct`persons`firms xcols
+  update persons: {`$";" sv string x}'[persons], firms: {`$";" sv string x}'[firms] from
+  update p_pct: 100-f_pct from update f_pct:`int$100*f_amt%total from update total: p_amt+f_amt from
+  () xkey (select firms: distinct name, f_amt: sum amount by zip,settlement,address,ksh_id from .data.firms) ij
+    `zip`settlement`address xkey select persons: distinct name, p_amt: sum amount by zip,settlement,address,ksh_id from .data.ppl;
+  `.data.misc_vars insert (`total_amount_address_sharing; `$ string exec sum total from .misc.same_addresses);
 
   // Residents of which town won the largest amount of subsidies - order by average wins
   .misc.ppl_wins_avg: `avg_amt xdesc update avg_amt: amount%wins from select sum amount, wins: count i by settlement, zip from .data.ppl;
@@ -151,6 +156,7 @@ system "l ../q/elections.q";
 if[`EXPORT=`$.z.x[0];
   .agrar.export.init[];
   .agrar.export.normalize[];
+  .agrar.analyze[];
   .agrar.export.save[];
   ];
 
