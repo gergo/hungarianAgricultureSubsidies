@@ -27,8 +27,11 @@ system "l ../q/elections.q";
   .agrar.save_csv["agrar_funds"; .data.funds];
   .agrar.save_csv["agrar_wins"; .data.wins];
   .agrar.save_csv["agrar_full"; .data.full];
+
   .agrar.save_csv["settlement_stats"; .data.settlement_stats];
   .agrar.save_csv["win_by_settlements"; .data.win_by_settlements];
+
+  .agrar.save_csv["avg_win_by_gender"; select avg_win: sum amt%count i by gender,year from (select amt: sum amount by name,settlement,zip,address,year,gender from .data.full where gender<>`unknown,not is_firm)];
   };
 
 .agrar.export.init:{[]
@@ -127,9 +130,6 @@ system "l ../q/elections.q";
   // which households contain the most winners (along with the amounts)
   .misc.single_household: select from (`cnt xdesc select nm: enlist name, cnt: count i,sum amount by
   settlement,address from select sum amount by name,settlement,address from .data.ppl where address<>`) where cnt>5;
-
-  .misc.avg_wins: select avg_win: sum amt%count i by gender,year from (select amt: sum amount by name,settlement,zip,address,year,gender from .data.ppl where gender<>`unknown);
-  .agrar.save_csv["avg_win_by_gender"; .misc.avg_wins];
   };
 
 .agrar.yearly_diffs:{[]
