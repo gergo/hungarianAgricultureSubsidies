@@ -10,14 +10,15 @@ system "l ../q/utils.q";
   t
   };
 
-// Load an individual csv with geo-coded addresses
-.geocode.process_files:{[]
+.geocode.process_files_raw:{[]
   .agrar.log "Loading geo-coded files";
   files: system "ls ",.geocode.dir,"agrar_output_*.csv";
-  raw: raze .geocode.process_file each files;
+  update index:i from raze .geocode.process_file each files
+  };
 
-  raw: update index:i from raw;
-
+// Load an individual csv with geo-coded addresses
+.geocode.process_files:{[]
+  raw: .geocode.process_files_raw[];
   // remove probable data errors
   raw: delete from raw where not formatted_address like "*Hungary";
   raw: select from raw where accuracy in `APPROXIMATE`RANGE_INTERPOLATED;
@@ -59,7 +60,7 @@ system "l ../q/utils.q";
   };
 
 .geocode.save_all_processed:{[]
-  (hsym `$.geocode.dir,"agrar_output_all.csv") 0: "," 0: .geocode.process_files[];
+  (hsym `$.geocode.dir,"agrar_output_all.csv") 0: "," 0: .geocode.process_files_raw[];
   };
 
 .geocode.init_pre:{[]
