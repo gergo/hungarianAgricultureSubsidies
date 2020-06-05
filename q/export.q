@@ -8,14 +8,14 @@ system "l ../q/elections.q";
 .agrar.export.normalize:{[]
   .data.settlements: update settlement_id: i from distinct delete zip_mod,settlement_mod from .data.settlements;
 
-  normalized1: delete zip_mod,settlement_mod,ksh_id,zip,settlement from
+  normalized1: delete zip_mod,settlement_mod,address_orig,address_mod,ksh_id,zip,settlement from
     (update settlement: settlement_mod,zip:zip_mod from .data.full) lj
     `zip`settlement xkey select settlement_id,zip,settlement from .data.settlements;
 
   .data.winners: update winner_id: i from
-    select distinct name,gender,address,formatted_address,is_firm,latitude,longitude,settlement_id from normalized1;
-  normalized2: delete name_parts,addr_fixed,postcode,name,gender,address,formatted_address,is_firm,latitude,longitude,settlement_id from normalized1 lj
-    `name`gender`address`formatted_address`is_firm`latitude`longitude`settlement_id xkey .data.winners;
+    select distinct name,gender,address,is_firm,latitude,longitude,settlement_id from normalized1;
+  normalized2: delete name_parts,addr_fixed,postcode,name,gender,address,is_firm,latitude,longitude,settlement_id from normalized1 lj
+    `name`gender`address`is_firm`latitude`longitude`settlement_id xkey .data.winners;
 
   .data.funds: update fund_id: i from select distinct reason,program,source,land_based from normalized2;
   .data.wins: delete reason,program,source,land_based from normalized2 lj `reason`program`source`land_based xkey .data.funds;
@@ -36,6 +36,7 @@ system "l ../q/elections.q";
   .agrar.load_vars[];
   .agrar.save_csv["misc_vars";.data.misc_vars];
   .agrar.save_csv["misc_same_addresses";.misc.same_addresses];
+  .agrar.save_csv["misc_ppl_wins_max";.misc.ppl_wins_max];
   };
 
 .agrar.export.init:{[]
@@ -56,7 +57,8 @@ system "l ../q/elections.q";
 
   // join geocoded addresses to subsidies
   processed_addresses: .geocode.process_files[];
-  clean_addresses: `zip`settlement`address xkey select distinct zip,settlement,address,formatted_address,postcode,latitude,longitude
+  clean_addresses: `zip`settlement`address xkey
+    select distinct zip,settlement,address,formatted_address,postcode,latitude,longitude
     from processed_addresses where status=`OK,number_of_results=1;
   raw_subsidies_1_with_clean_addresses: raw_subsidies_0 lj clean_addresses;
 
@@ -70,7 +72,8 @@ system "l ../q/elections.q";
   settlement_override_map: settlement_overrides[`zip]!settlement_overrides[`settlement];
   settlement_part_map: .ksh.ksh_id_settlement_part_map[][`settlement_part]!.ksh.ksh_id_settlement_part_map[][`settlement];
 
-  raw_subsidies_2_with_zip_mod: update zip_mod: zip ^ postcode from raw_subsidies_1_with_clean_addresses;
+  raw_subsidies_2_with_zip_mod: update zip_mod: zip ^ postcode,
+    address_mod: address ^ formatted_address from raw_subsidies_1_with_clean_addresses;
   raw_subsidies_3_with_bp_districts: update settlement_mod: settlement ^ settlement_part_map[settlement] ^ settlement_override_map[zip_mod] ^ bp_district_name_map[zip_mod] from raw_subsidies_2_with_zip_mod;
 
   zips_by_settlement: select distinct zip_mod by settlement_mod from raw_subsidies_3_with_bp_districts where zip_mod<>0N;
@@ -81,12 +84,14 @@ system "l ../q/elections.q";
   .data.settlements: .data.settlement_details lj `zip`settlement xkey zip_map;
 
   // add ksh_id to subsidies
-  data_full: raw_subsidies_3_with_bp_districts lj `settlement_mod`zip_mod xkey select distinct ksh_id,settlement_mod,zip_mod from .data.settlements;
+  data_full: update address: address_orig ^ address_mod from
+    update address_orig: address from raw_subsidies_3_with_bp_districts lj
+    `settlement_mod`zip_mod xkey select distinct ksh_id,settlement_mod,zip_mod from .data.settlements;
   .data.full: (select from data_full where ksh_id<>0N),(select from data_full where ksh_id=0N) lj `zip`settlement xkey zip_map;
 
 
   // assert: log if there are unmapped zip codes
-  unmapped: `amount xdesc select sum amount by year,zip,settlement_mod from .data.full where ksh_id=0N;
+  unmapped: `amount xdesc select sum amount by year,zip_mod,settlement_mod from .data.full where ksh_id=0N;
   .agrar.assert[
     {0<count x};
     unmapped;
@@ -95,7 +100,9 @@ system "l ../q/elections.q";
   ];
 
   // settlement-level data for analysis
-  .data.settlement_stats: delete from (select distinct from delete zip_mod,zip,settlement_id from .data.settlements) where settlement_mod=`;
+  settlement_coordinates: select avg latitude,avg longitude by ksh_id,settlement_mod from .data.full where latitude<>0N,longitude<>0N;
+  settlement_stats: delete from (select distinct from delete zip_mod,zip,settlement_id from .data.settlements) where settlement_mod=`;
+  .data.settlement_stats: settlement_stats lj settlement_coordinates;
   .data.win_by_settlements: 0! select sum amount by is_firm,land_based,year,ksh_id from .data.full;
   };
 
@@ -120,9 +127,9 @@ system "l ../q/elections.q";
 
   // Are there individuals and firms that share address?
   .misc.same_addresses: `ksh_id`zip`settlement`address`total`p_amt`f_amt`p_pct`f_pct`persons`firms xcols
-  update persons: {`$";" sv string x}'[persons], firms: {`$";" sv string x}'[firms] from
-  update p_pct: 100-f_pct from update f_pct:`int$100*f_amt%total from update total: p_amt+f_amt from
-  () xkey (select firms: distinct name, f_amt: sum amount by zip,settlement,address,ksh_id from .data.firms) ij
+    update persons: {`$";" sv string x}'[persons], firms: {`$";" sv string x}'[firms] from
+    update p_pct: 100-f_pct from update f_pct:`int$100*f_amt%total from update total: p_amt+f_amt from
+    () xkey (select firms: distinct name, f_amt: sum amount by zip,settlement,address,ksh_id from .data.firms) ij
     `zip`settlement`address xkey select persons: distinct name, p_amt: sum amount by zip,settlement,address,ksh_id from .data.ppl;
   `.data.misc_vars insert (`total_amount_address_sharing; `$ string exec sum total from .misc.same_addresses);
 
@@ -133,7 +140,13 @@ system "l ../q/elections.q";
   .misc.firm_wins: `avg_amt xdesc update avg_amt: amount%wins from select sum amount, wins: count i by settlement,zip from .data.firms;
 
   // Which individuals won the most in agricultural subsidies
-  .misc.ppl_wins_max: () xkey `amount xdesc select sum amount,count i by name,settlement,address from .data.ppl where gender=`unknown;
+  max_ppl_wins: () xkey update name:{[nm]`$ (2#(" " vs string nm)[0]),". "," " sv 1_(" " vs string nm)}'[name] from
+    select from
+     (select total: sum amount,cnt: count i by name,settlement,address,zip,ksh_id,latitude,longitude from .data.ppl)
+    where total>5000000000;
+  .misc.ppl_wins_max: () xkey `total xdesc (select from max_ppl_wins where latitude<>0N,longitude<>0N),
+    (select from max_ppl_wins where latitude=0N or longitude=0N) lj
+    2! select settlement,ksh_id,latitude,longitude from .data.settlement_stats;
 
   // which households contain the most winners (along with the amounts)
   .misc.single_household: select from (`cnt xdesc select nm: enlist name, cnt: count i,sum amount by
