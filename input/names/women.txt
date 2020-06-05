@@ -6,6 +6,7 @@ Alekszandrovna
 Alica
 Alice
 Alicja
+Anamaria
 Anette
 Ann
 Apollonia
@@ -35,6 +36,7 @@ Gabriele
 Gerlinde
 Gertrud
 Helene
+Henrieta
 Henriette
 Iréna
 Irene
@@ -42,9 +44,11 @@ Iris
 Irisz
 Iveta
 Ivette
+Jeanne
 Jenifer
 Jennifer
 Jolanka
+Judita
 Judith
 Julia
 Juliána
@@ -71,6 +75,7 @@ Ottília
 Petronela
 Philomena
 Rachel
+Renate
 Rózsika
 Sara
 Silvia
@@ -80,7 +85,9 @@ Stefania
 Stela
 Susanne
 Sylvia
+Szílvia
 Tetiana
+Theresia
 Timea
 Ulrike
 Ursula
@@ -91,4 +98,5 @@ Virginia
 Yulia
 Yvonne
 Zeina
+Zoe
 Zuzana
