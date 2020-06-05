@@ -56,7 +56,7 @@ system "l ../q/elections.q";
   raw_subsidies_0: .agrar.load_csvs[];
 
   // join geocoded addresses to subsidies
-  processed_addresses: .geocode.process_files[];
+  processed_addresses: .geocode.load_geocoded_addresses[];
   clean_addresses: `zip`settlement`address xkey
     select distinct zip,settlement,address,formatted_address,postcode,latitude,longitude
     from processed_addresses where status=`OK,number_of_results=1;
