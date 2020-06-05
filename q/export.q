@@ -140,10 +140,10 @@ system "l ../q/elections.q";
   .misc.firm_wins: `avg_amt xdesc update avg_amt: amount%wins from select sum amount, wins: count i by settlement,zip from .data.firms;
 
   // Which individuals won the most in agricultural subsidies
-  max_ppl_wins: () xkey update name:{[nm]`$ (2#(" " vs string nm)[0]),". "," " sv 1_(" " vs string nm)}'[name] from
-    select from
-     (select total: sum amount,cnt: count i by name,settlement,address,zip,ksh_id,latitude,longitude from .data.ppl)
-    where total>5000000000;
+  max_ppl_wins: select from (
+    () xkey update name:{[nm]`$ (1#(" " vs string nm)[0]),". "," " sv 1_(" " vs string nm)}'[name] from
+      (select total: sum amount,cnt: count i by name,settlement,address,zip,ksh_id,latitude,longitude from .data.ppl))
+    where total>500000000;
   .misc.ppl_wins_max: () xkey `total xdesc (select from max_ppl_wins where latitude<>0N,longitude<>0N),
     (select from max_ppl_wins where latitude=0N or longitude=0N) lj
     2! select settlement,ksh_id,latitude,longitude from .data.settlement_stats;
