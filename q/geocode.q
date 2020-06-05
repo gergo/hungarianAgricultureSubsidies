@@ -34,9 +34,9 @@ system "l ../q/utils.q";
   };
 
 .geocode.load_clean:{[]
-  f: "geocoded_clean.csv";
+  f: .geocode.dir,"geocoded_clean.csv";
   .agrar.log "  processing ", f;
-  t: ("ISFFSISISS";enlist",")0:`$f;
+  t: ("ISFFSISISS";enlist",")0: system "unzip -c ",f," | sed -e '1,2d'";
   t
   };
 
