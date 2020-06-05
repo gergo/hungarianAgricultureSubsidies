@@ -40,7 +40,10 @@ list.of.packages <-c("tidyverse",
                      "arsenal",
                      "forcats",
                      "viridis",
-                     "scales"
+                     "scales",
+                     "knitr",
+                     "kableExtra",
+                     "ggmap"
                      )
 
 
@@ -64,7 +67,6 @@ agrar_winners <- readr::read_csv(paste0(data_in, "agrar_winners.csv"),
                                      name = col_character(),
                                       gender = col_character(),
                                       address = col_character(),
-                                      formatted_address = col_character(),
                                       is_firm = col_double(),
                                       latitude = col_double(),
                                       longitude = col_double(),
@@ -77,6 +79,7 @@ agrar_winners$winner_id <- as.integer(agrar_winners$winner_id)
 
 agrar_settlements <- readr::read_csv(paste0(data_in, "agrar_settlements.csv"))
 agrar_settlements$settlement_id <- as.integer(agrar_settlements$settlement_id)
+agrar_settlements$county <- as.factor(agrar_settlements$county)
 
 agrar_funds$land_based <- as.factor(agrar_funds$land_based)
 agrar_wins$year <- as.factor(agrar_wins$year)
@@ -151,8 +154,12 @@ distinct_years <- full_by_year %>%
   distinct()
 years <- dim(distinct_years)[1]
 
+MAPS_API_KEY <- read_file("../local/MAPS_API_KEY.txt")
+register_google(MAPS_API_KEY)
+
 options(scipen=999)
 set.seed(42)
+knitr::opts_chunk$set(echo=FALSE)
 ```
 
 ```{r include=FALSE, echo = FALSE, message = FALSE, warning = FALSE}
@@ -282,7 +289,7 @@ The above steps reduced the unique number of entities by `r misc_vars[misc_vars$
 Individuals and institutions are not separated in the data. There is no indication of the beneficiary type but it would be important to investigate the 2 groups separately. I made the initial assumption that any name with 8 or more name parts is a firm. For shorted names I identified a large number of keywords that indicate that the beneficiary is an institution:
 
 ```{r, engine = 'bash', eval = TRUE}
-paste -s -d" " ../input/names/firm_keywords.txt | fold -w 90
+paste -s -d" " ../input/names/firm_keywords.txt | fold -w 90 | head -n8
 ```
 
 As the above list shows there are not just firms but churches, municipalities, clubs and all sorts of other organizations; for simplicity I call all of these firms. Their distribution is around 50% for all years.
@@ -381,7 +388,7 @@ The Central Statistics Agency (Központi Statisztikai Hivatal - KSH) has a websi
 `r pagebreak()`
 # Data Exploration
 
-The data contains `r dim(agrar_full)[1]` data points, each representing a single payment. If we aggregate over addresses we get the total amount of subsidies that a household or institution received. After doing this the number of records goes down to `r dim(sum_by_address)[1]`, which means beneficiaries on average received 3 payments each year. Unfortunately, the data does not allow handling of cases when people move but even with this inaccuracy the overall picture is much more meaningful if we do the aggregation.
+The data contains `r dim(agrar_full)[1]` data points, each representing a single payment. If we aggregate over addresses we get the total amount of subsidies that a household or institution received. After doing this the number of records goes down to `r dim(sum_by_address)[1]`, which means beneficiaries on average received `r round(dim(agrar_full)[1]/dim(sum_by_address)[1], digits = 2)` payments each year. Unfortunately, the data does not allow handling of cases when people move but even with this inaccuracy the overall picture is much more meaningful if we do the aggregation.
 
 ## Descriptive Statistics
 
@@ -389,9 +396,10 @@ The data contains `r dim(agrar_full)[1]` data points, each representing a single
 stat_controls <- tableby.control(
   test = FALSE,
   total = FALSE,
-  numeric.stats = c("N", "mean", "sd", "q1q3", "median", "min", "max"),
+  numeric.stats = c("Sum", "N", "mean", "sd", "q1q3", "median", "min", "max"),
   cat.stats = c("countpct"),
   stats.labels = list(
+    sum='Sum',
     N='Count',
     mean = "Mean",
     sd = "StDev",
@@ -433,7 +441,7 @@ amount <- agrar_full$amount
 # Save the mean, sd, min, max, quantiles of won amounts
 descr_amount <- as.matrix( c( mean(amount) , sd(amount), min(amount) , max(amount) , quantile(amount,.50), quantile(amount,.95) , length(amount) ) )
 # Name the dimensions as a list to have neat output 
-dimnames(descr_amount)[[1]] <- list('mean','sd','min','max', 'p50' , 'p95' , 'n')
+dimnames(descr_amount)[[1]] <- list('mean','sd','min','max','p50','p95','n')
 print(descr_amount)
 rm(amount)
 ```
@@ -445,7 +453,7 @@ save_3d_chart(full_by_year, 10, "avg", "all_yearly")
 save_3d_chart(full_by_year, 10, "sum", "all_yearly")
 ```
 
-The below table shows descriptive statistics for each year based on all payments. The distribution has similar characteristics for each year as for the overall dataset. It is interesting to see that the mean decreased in the past few years compared to the first half of the data but the maximum amount almost doubled compared to 2010.
+The below table shows descriptive statistics for each year based on all payments. The distribution has similar characteristics for each year as for the overall dataset. It is interesting to see that the mean decreased in the past few years but the maximum amount almost doubled compared to 2010.
 
 ```{r results="asis"}
 summary(full_stat_table,
@@ -487,7 +495,7 @@ sum_by_address_decils <- sum_by_address %>%
   arrange(desc(year))
 ```
 
-When we look at the yearly distribution of subsidies summed by beneficiaries we see a steady increase in the mean and median values. If we compare the number of data points per year with the previous section we see that the number of payments almost doubled since 2010 but the number of beneficiaries went down by more than 12000. _This means that fewer beneficiaries receive more money but in smaller installments compared to earlier years._
+When we look at the yearly distribution of subsidies summed by beneficiaries we see a steady increase in the mean and median values. If we compare the number of data points per year with the previous section we see that the number of payments almost doubled since 2010 but the number of beneficiaries went down. _This means that fewer beneficiaries receive more money but in smaller installments compared to earlier years._
 
 ```{r results="asis"}
 summary(by_address_stat_table,
@@ -495,7 +503,7 @@ summary(by_address_stat_table,
         digits=0, digits.p=0, digits.pct=0,digits.n=NA)
 ```
 
-We can already see an increase in the mean if we look at the distribution on a violet plot.
+We can already see an increase in the mean if we look at the distribution on a violin plot.
 
 ```{r fig.cap='Yearly distribution of payments summed by address'}
 ggplot(sum_by_address %>% ungroup() %>% select(year,amount) %>% mutate(amount = log10(amount+1))) +
@@ -548,7 +556,7 @@ rm(sum_by_address)
 
 ### Individuals
 
-The distribution is similar if we look at the subsidies won by individuals. In 2010 more than 170 000 households received agricultural subsidies while in 2019 it was slightly more than 157 000. Both the mean and median more than doubled during this time interval but the standard deviation also increased 2-fold. _It is notable that there is a household that received more than 525 million HUF in agricultural subsidies in 2019._
+The distribution is similar if we look at the subsidies won by individuals sharing the same address. In 2010 more than 163 000 households received agricultural subsidies while in 2019 it was slightly more than 154 000. Both the mean and median more than doubled during this time interval but the standard deviation also increased 2-fold. _It is notable that there is a household that received more than 525 million HUF in agricultural subsidies in 2019._
 
 ```{r include=FALSE, echo = FALSE, message = FALSE, warning = FALSE}
 sum_by_address_indiv <- agrar_full %>%
@@ -649,9 +657,9 @@ summary(sum_by_address_firms_stat_table,
         digits=0, digits.p=0, digits.pct=0,digits.n=NA)
 ```
 
-When looking institutions we see that the number of entities who received agricultural subsidies was slightly higher in 2019 than in 2010: around 10000. It is interesting that there was a steady increase in the number of recipients until 2015 when it reached almost 150% of the 2010 count. In 2016 there was a sharp drop and the number of institutional entities has been increasing since then. In the past 10 years the mean increased by 10 million to just over 37 million and the median more than doubled. _The largest sum won by a single firm was almost 4.5 billion HUF in 2019._
+When looking at the aggregate wins by institutions sharing the same address we see that the number of entities (rather addresses) who received agricultural subsidies was slightly higher in 2019 than in 2010. It is interesting that there was a steady increase in the number of recipients until 2015 when it reached almost 150% of the 2010 count. In 2016 there was a sharp drop and the number of institutional entities has been increasing since then. In the past 10 years the mean increased by 10 million to just over 38 million and the median more than doubled. _The largest sum won by a single firm was almost 4.5 billion HUF in 2019._
 
-If we divide the data to 10 bins of equal size the proportion of the top decil is striking.
+If we divide the data to 10 bins of equal size the proportion of the top decil is striking in this dataset too.
 
 ```{r fig.cap='Average and total of subsidies won by institutions by decils', fig.show = "hold", out.width = "50%", echo=FALSE, results='hide', fig.height=6.8}
 save_3d_chart(sum_by_address_firms, 10, "avg", "summed-by-address-firms")
@@ -773,30 +781,80 @@ misc_same_addresses <- misc_same_addresses %>%
   inner_join(settlement_stats, by = "ksh_id")
 ```
 
-The total amount of agricultural subsidies distributed since 2010 is `r misc_vars[misc_vars$var_name=="total_amount",]$val`. From this amount `r misc_vars[misc_vars$var_name=="total_amount_address_sharing",]$val` went to beneficiaries where individuals and institutions share the address. This is almost 10% of the total amount so it's worth checking if there is some pattern. The proportion of the amount of money received by firms versus individuals seems random for all settlement types except for Budapest. In the capital the share of individuals is lower for higher total amount.
+The total amount of agricultural subsidies distributed since 2010 is `r misc_vars[misc_vars$var_name=="total_amount",]$val` HUF. From this amount `r misc_vars[misc_vars$var_name=="total_amount_address_sharing",]$val` went to beneficiaries where individuals and institutions share the address. This is more than `r floor((misc_vars[misc_vars$var_name=="total_amount_address_sharing",]$val)/(misc_vars[misc_vars$var_name=="total_amount",]$val)*100)`% of the total amount so it's worth checking if there is some pattern. The proportion of the amount of money received by firms versus individuals seems random for all settlement types except for Budapest. In the capital the share of individuals is lower for higher total amount.
 
 ```{r fig.cap='Proportion of subsidies received by firms when sharing address with individuals', fig.subcap=c('All settlement types', 'Budapest and county capitals'), fig.ncol = 2, out.width = "50%", fig.align = "center"}
 ggplot(data = misc_same_addresses, aes(x = log10(total), y = f_pct,  color = settlement_type)) +
   geom_point(shape = 1) +
-  labs(x = "", y = "") +
+  expand_limits(y = c(0,102)) +
+  labs(x = "log10(total)", y = "fraction won by firms") +
   theme_minimal()
 ggsave(paste0(data_out, "scatter_firm_fraction_all.png"))
 ggsave(paste0(data_out, "scatter_firm_fraction_all.pdf"))
 
 ggplot(data = misc_same_addresses %>%
-              filter(settlement_type %in% c("Budapest", "megyeszékhely", "járás székhely")),
+              filter(settlement_type %in% c("Budapest", "megyeszékhely")),
        aes(x = log10(total), y = f_pct,  color = settlement_type)) +
   geom_point(shape = 1) +
   geom_smooth(method = lm) +
-  labs(x = "", y = "") +
+  expand_limits(y = c(0,102)) +
+  labs(x = "log10(total)", y = "") +
   theme_minimal()
 ggsave(paste0(data_out, "scatter_firm_fraction_cities.png"))
 ggsave(paste0(data_out, "scatter_firm_fraction_cities.pdf"))
 ```
 
-
 # Big Winners and Losers
 
+The agricultural subsidies data is publicly available. All data cleaning, transformations were also done using public datasources. The largest winners are not easy to find on the original website because searching for aggregates is not possible.
+
+## Individuals
+
+```{r include=FALSE, echo = FALSE, message = FALSE, warning = FALSE}
+misc_ppl_wins_max <- readr::read_csv(paste0(data_in, "misc_ppl_wins_max.csv"))
+misc_ppl_wins_max_by_address <- readr::read_csv(paste0(data_in, "misc_ppl_wins_max_by_address.csv"))
+misc_ppl_wins_max_by_address$ppl_cat <- as.factor(misc_ppl_wins_max_by_address$ppl_cat)
+
+hun_map <- get_map(location = 'Hungary', zoom = 7, maptype = "roadmap", color = "bw")
+```
+
+Here are the individuals who won at lease 1 billion HUF since 2010. Even though the names and addresses are available in the dataset I chose not to disclose those in this table.
+
+```{r results='asis'}
+kable(misc_ppl_wins_max %>%
+  filter(total>1000000000) %>%
+  select(name,settlement,zip,total,num_wins=cnt),
+  caption = "Individual winners with more than 1 bn HUF") %>%
+  kable_styling(bootstrap_options = c("striped", "condensed"))
+```
+
+When aggregating wins by addresses we get additional "agricultural subsidy billionares". Here are the top 10. It is interesting to note that this list is lead by an individual.
+
+```{r results='asis'}
+kable(misc_ppl_wins_max_by_address %>%
+  top_n(10) %>%
+  select(settlement,zip,total,winners=ppl),
+  caption = "Individual winners with more than 1 bn HUF") %>%
+  kable_styling(bootstrap_options = c("striped", "condensed"))
+```
+
+We can also put them on the map of Hungary.
+
+```{r fig.cap='Individuals who won more than 500 mm HUF', fig.subcap=c('Single winners', 'Individuals sharing the same address'), fig.ncol = 2, out.width = "50%", fig.align = "center"}
+ggmap(hun_map) +
+  geom_point(data = misc_ppl_wins_max, aes(x = longitude, y = latitude, size = total/1000000000), color = "purple", alpha = 0.5) +
+  labs(size = "bn Huf", color = NULL)
+ggsave(paste0(data_out, "map_individual_winners.png"))
+ggsave(paste0(data_out, "map_individual_winners.pdf"))
+
+ggmap(hun_map) +
+  geom_point(data = misc_ppl_wins_max_by_address, aes(x = longitude, y = latitude, size = total/1000000000, color = ppl_cat), alpha = 0.5) +
+  labs(size = "bn Huf", color = "winners") +
+  theme_minimal() +
+  scale_fill_viridis(discrete=TRUE, direction=1, option = "D", guide = guide_legend(reverse = TRUE))
+ggsave(paste0(data_out, "map_individual_winners_by_address.png"))
+ggsave(paste0(data_out, "map_individual_winners_by_address.pdf"))
+```
 check which firms / individuals lost / won compared to previous years
 
 # Effect of elections
