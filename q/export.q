@@ -35,8 +35,6 @@ system "l ../q/elections.q";
 
   .agrar.load_vars[];
   .agrar.save_csv["misc_vars";.data.misc_vars];
-  .agrar.save_csv["misc_same_addresses";.misc.same_addresses];
-  .agrar.save_csv["misc_ppl_wins_max";.misc.ppl_wins_max];
   };
 
 .agrar.export.init:{[]
@@ -132,6 +130,7 @@ system "l ../q/elections.q";
     () xkey (select firms: distinct name, f_amt: sum amount by zip,settlement,address,ksh_id from .data.firms) ij
     `zip`settlement`address xkey select persons: distinct name, p_amt: sum amount by zip,settlement,address,ksh_id from .data.ppl;
   `.data.misc_vars insert (`total_amount_address_sharing; `$ string exec sum total from .misc.same_addresses);
+  .agrar.save_csv["misc_same_addresses";.misc.same_addresses];
 
   // Residents of which town won the largest amount of subsidies - order by average wins
   .misc.ppl_wins_avg: `avg_amt xdesc update avg_amt: amount%wins from select sum amount, wins: count i by settlement, zip from .data.ppl;
@@ -145,12 +144,23 @@ system "l ../q/elections.q";
       (select total: sum amount,cnt: count i by name,settlement,address,zip,ksh_id,latitude,longitude from .data.ppl))
     where total>500000000;
   .misc.ppl_wins_max: () xkey `total xdesc (select from max_ppl_wins where latitude<>0N,longitude<>0N),
-    (select from max_ppl_wins where latitude=0N or longitude=0N) lj
-    2! select settlement,ksh_id,latitude,longitude from .data.settlement_stats;
+    (select from max_ppl_wins where (latitude=0N) or longitude=0N) lj
+    1! select ksh_id,latitude,longitude from .data.settlement_stats;
+  .agrar.save_csv["misc_ppl_wins_max";.misc.ppl_wins_max];
+
+  max_ppl_wins_by_address: update ppl_cat:{$[x<2;`$"1";$[x<4;`$"2-3";$[x<8;`$"4-7";`$"8+"]]]}'[ppl] from
+    select from
+      (select ppl: count i, total: sum amount by settlement,address,zip,ksh_id,latitude,longitude from
+        (select sum amount by name,settlement,address,zip,ksh_id,latitude,longitude from .data.ppl where address<>`))
+    where total>500000000;
+  .misc.ppl_wins_max_by_address: () xkey `total xdesc (select from max_ppl_wins_by_address where latitude<>0N,longitude<>0N),
+  (select from max_ppl_wins_by_address where (latitude=0n) or longitude=0n) lj
+  1! select ksh_id,latitude,longitude from .data.settlement_stats;
+  .agrar.save_csv["misc_ppl_wins_max_by_address";.misc.ppl_wins_max_by_address];
 
   // which households contain the most winners (along with the amounts)
   .misc.single_household: select from (`cnt xdesc select nm: enlist name, cnt: count i,sum amount by
-  settlement,address from select sum amount by name,settlement,address from .data.ppl where address<>`) where cnt>5;
+  settlement,address from select sum amount by name,settlement,address,zip from .data.ppl where address<>`) where cnt>5;
   };
 
 // function to generate yearly diff based on dynamic constraints
