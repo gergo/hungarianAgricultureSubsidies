@@ -177,8 +177,11 @@ system "l ../q/elections.q";
   .agrar.save_csv["misc_firm_wins_max_by_address";.misc.firm_wins_max_by_address];
 
   // which households contain the most winners (along with the amounts)
-  .misc.single_household: select from (`cnt xdesc select nm: enlist name, cnt: count i,sum amount by
-  settlement,address from select sum amount by name,settlement,address,zip from .data.ppl where address<>`) where cnt>5;
+  .misc.single_household: () xkey update name: {";" sv string x}'[name] from (select from
+    (`cnt xdesc select name, cnt: count i,sum amount by settlement,address,zip from
+      select sum amount by name,settlement,address,zip from .data.ppl where address<>`)
+    where cnt>5);
+  .agrar.save_csv["misc_single_household";.misc.single_household];
   };
 
 // function to generate yearly diff based on dynamic constraints
