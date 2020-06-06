@@ -87,7 +87,6 @@ system "l ../q/elections.q";
     `settlement_mod`zip_mod xkey select distinct ksh_id,settlement_mod,zip_mod from .data.settlements;
   .data.full: (select from data_full where ksh_id<>0N),(select from data_full where ksh_id=0N) lj `zip`settlement xkey zip_map;
 
-
   // assert: log if there are unmapped zip codes
   unmapped: `amount xdesc select sum amount by year,zip_mod,settlement_mod from .data.full where ksh_id=0N;
   .agrar.assert[
@@ -157,6 +156,25 @@ system "l ../q/elections.q";
   (select from max_ppl_wins_by_address where (latitude=0n) or longitude=0n) lj
   1! select ksh_id,latitude,longitude from .data.settlement_stats;
   .agrar.save_csv["misc_ppl_wins_max_by_address";.misc.ppl_wins_max_by_address];
+
+  // Which institutions won the most in agricultural subsidies - threshold of 1 bn
+  max_firm_wins: select from
+    (select total: sum amount,cnt: count i by name,settlement,address,zip,ksh_id,latitude,longitude from .data.firms)
+  where total>1000000000;
+  .misc.firm_wins_max: () xkey `total xdesc (select from max_firm_wins where latitude<>0N,longitude<>0N),
+  (select from max_firm_wins where (latitude=0N) or longitude=0N) lj
+  1! select ksh_id,latitude,longitude from .data.settlement_stats;
+  .agrar.save_csv["misc_firm_wins_max";.misc.firm_wins_max];
+
+  max_firm_wins_by_address: update cat:{$[x<2;`$"1";$[x<4;`$"2-3";$[x<8;`$"4-7";`$"8+"]]]}'[firms] from
+  select from
+    (select firms: count i, total: sum amount by settlement,address,zip,ksh_id,latitude,longitude from
+      (select sum amount by name,settlement,address,zip,ksh_id,latitude,longitude from .data.firms where address<>`))
+    where total>1000000000;
+  .misc.firm_wins_max_by_address: () xkey `total xdesc (select from max_firm_wins_by_address where latitude<>0N,longitude<>0N),
+  (select from max_firm_wins_by_address where (latitude=0n) or longitude=0n) lj
+  1! select ksh_id,latitude,longitude from .data.settlement_stats;
+  .agrar.save_csv["misc_firm_wins_max_by_address";.misc.firm_wins_max_by_address];
 
   // which households contain the most winners (along with the amounts)
   .misc.single_household: select from (`cnt xdesc select nm: enlist name, cnt: count i,sum amount by
