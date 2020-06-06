@@ -13,7 +13,7 @@ system "l ../q/utils.q";
 .geocode.process_files_raw:{[]
   .agrar.log "Loading geo-coded files";
   files: system "ls ",.geocode.dir,"agrar_output_*.csv";
-  update index:i from raze .geocode.process_file each files
+  update index:i from raze .geocode.process_full_file each files
   };
 
 // Load an individual csv with geo-coded addresses
@@ -36,7 +36,7 @@ system "l ../q/utils.q";
 .geocode.load_clean:{[]
   f: .geocode.dir,"geocoded_clean.csv";
   .agrar.log "  processing ", f;
-  t: ("ISFFSISISS";enlist",")0: system "unzip -c ",f," | sed -e '1,2d'";
+  t: ("ISFFSISISSI";enlist",")0: system "unzip -c ",f," | sed -e '1,3d'";
   t
   };
 
@@ -72,7 +72,7 @@ system "l ../q/utils.q";
 
 .geocode.save_clean_processed:{[]
   raw: .geocode.process_files_raw[];
-  raw: select index,formatted_address,latitude,longitude,accuracy,postcode,status,zip,settlement,address from raw;
+  raw: select index,formatted_address,latitude,longitude,accuracy,postcode,status,zip,settlement,address,number_of_results from raw;
   raw: update index:i from raw;
   (hsym `$.geocode.dir,"geocoded_clean.csv") 0: "," 0: raw;
   };
