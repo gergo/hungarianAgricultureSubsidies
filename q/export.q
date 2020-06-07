@@ -182,6 +182,11 @@ system "l ../q/elections.q";
       select sum amount by name,settlement,address,zip from .data.ppl where address<>`)
     where cnt>5);
   .agrar.save_csv["misc_single_household";.misc.single_household];
+
+  .misc.yearly_win_by_settlement: () xkey
+    (select winners: count name,sum amount by settlement,ksh_id,year,is_firm,land_based from
+      (select sum amount by name,settlement,address,ksh_id,year,is_firm,land_based from .data.full));
+  .agrar.save_csv["misc_yearly_win_by_settlement";.misc.yearly_win_by_settlement];
   };
 
 // function to generate yearly diff based on dynamic constraints
