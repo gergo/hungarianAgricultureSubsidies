@@ -8,7 +8,7 @@ system "l ../q/elections.q";
 .agrar.export.normalize:{[]
   .data.settlements: update settlement_id: i from distinct delete zip_mod,settlement_mod from .data.settlements;
 
-  normalized1: delete zip_mod,settlement_mod,address_orig,address_mod,ksh_id,zip,settlement from
+  normalized1: delete zip_mod,settlement_mod,address_orig,address_mod,formatted_address,ksh_id,zip,settlement from
     (update settlement: settlement_mod,zip:zip_mod from .data.full) lj
     `zip`settlement xkey select settlement_id,zip,settlement from .data.settlements;
 
