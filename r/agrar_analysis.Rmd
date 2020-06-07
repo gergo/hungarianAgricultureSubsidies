@@ -107,7 +107,7 @@ agrar_full$fund_id <- NULL
 agrar_full$settlement_id <- NULL
 
 settlement_stats <- readr::read_csv(paste0(data_in, "settlement_stats.csv"))
-settlement_stats$ksh_id <- as.integer(settlement_stats$ksh_id)
+settlement_stats$ksh_id <- as.factor(settlement_stats$ksh_id)
 settlement_stats$settlement_type <- factor(settlement_stats$settlement_type, ordered = TRUE,
   levels = c("Budapest","megyeszékhely","járás székhely","város","nagyközség","község"))
 settlement_stats$county <- as.factor(settlement_stats$county)
@@ -207,6 +207,10 @@ pagebreak <- function() {
   else
     return('<div style="page-break-before: always;" />')
 }
+
+f <- function(n) {
+  format(n, big.mark = " ") 
+}
 ```
 
 `r pagebreak()`
@@ -282,14 +286,14 @@ During exploratory data analysis I found multiple versions of some entities. Fix
 - **Character cases**: Some names had multiple versions with inconsistent capitalizations (eg. all caps or 2 upper-case starting characters) so I split names by spaces and capitalized only the first character in each name part. Unfortunately, the built-in `upper`/`lower` functions of Q could not handle Hungarian characters with accents so I had to implement custom logic to do these transformations.
 - **Remove dots**: Some names had multiple variations based on how abbreviations in their name parts were written: some had "." while other rows did not.
 
-The above steps reduced the unique number of entities by `r misc_vars[misc_vars$var_name=="raw_entity_count",]$val-misc_vars[misc_vars$var_name=="clean_entity_count",]$val` from `r misc_vars[misc_vars$var_name=="raw_entity_count",]$val` to `r misc_vars[misc_vars$var_name=="clean_entity_count",]$val`.
+The above steps reduced the unique number of entities by `r f((misc_vars[misc_vars$var_name=="raw_entity_count",]$val)-(misc_vars[misc_vars$var_name=="clean_entity_count",]$val))` from `r f(misc_vars[misc_vars$var_name=="raw_entity_count",]$val)` to `r f(misc_vars[misc_vars$var_name=="clean_entity_count",]$val)`.
 
 ## Identify institutions
 
 Individuals and institutions are not separated in the data. There is no indication of the beneficiary type but it would be important to investigate the 2 groups separately. I made the initial assumption that any name with 8 or more name parts is a firm. For shorted names I identified a large number of keywords that indicate that the beneficiary is an institution:
 
 ```{r, engine = 'bash', eval = TRUE}
-paste -s -d" " ../input/names/firm_keywords.txt | fold -w 90 | head -n8
+paste -s -d" " ../input/names/firm_keywords.txt | fold -w 90 | head -n7
 ```
 
 As the above list shows there are not just firms but churches, municipalities, clubs and all sorts of other organizations; for simplicity I call all of these firms. Their distribution is around 50% for all years.
@@ -379,27 +383,36 @@ The address fields are missing for almost 300 data points totaling almost 9.6 bi
 
 ### Geocoding
 
-To be able to aggregate agricultural subsidies on the beneficiary level it was important to have a geographical information that can be used as a key along with the name. After several iterations of address cleaning efforts I came up with the idea to use some geocoding API to convert all addresses to a standardized format. Unfortunately, I did not find an accurate, free service so I ended up using the [Google Maps Geocoding Api](https://maps.googleapis.com/maps/api/geocode/). The raw data has `r misc_vars[misc_vars$var_name=="raw_address_count",]$val` unique addresses and each one of these had to be sent to the API for geocoding. I created batches of addresses to geocode and used a python script to process them. The service is free only up to a limit and geocoding all addresses would take almost a day without parallellization. I saved down the results so I wouldn't have to do this slow, somewhat manual process another time for addresses that were already geocoded successfully. The API is sensitive to permutations in the address fields so I tried to find an order that yielded the highest success rate. Unfortunately, Google Maps could not convert some addresses so in those cases I just use the original format. One extra benefit of this approach was that all addresses that could be processed now have geo-coordinates. Using the latitude and longitude information we can create a map showing in which areas those beneficiaries reside who got most of the subsidies. After geocoding the number of unique addresses decreased to `r misc_vars[misc_vars$var_name=="clean_address_count",]$val` by `r misc_vars[misc_vars$var_name=="raw_address_count",]$val-misc_vars[misc_vars$var_name=="clean_address_count",]$val` so aggregating will be much more accurate.
+To be able to aggregate agricultural subsidies on the beneficiary level it was important to have a geographical information that can be used as a key along with the name. After several iterations of address cleaning efforts I came up with the idea to use some geocoding API to convert all addresses to a standardized format. Unfortunately, I did not find an accurate, free service so I ended up using the [Google Maps Geocoding Api](https://maps.googleapis.com/maps/api/geocode/). The raw data has `r f(misc_vars[misc_vars$var_name=="raw_address_count",]$val)` unique addresses and each one of these had to be sent to the API for geocoding. I created batches of addresses to geocode and used a python script to process them. The service is free only up to a limit and geocoding all addresses would take almost a day without parallellization. I saved down the results so I wouldn't have to do this slow, somewhat manual process another time for addresses that were already geocoded successfully. The API is sensitive to permutations in the address fields so I tried to find an order that yielded the highest success rate. Unfortunately, Google Maps could not convert some addresses so in those cases I just use the original format. One extra benefit of this approach was that all addresses that could be processed now have geo-coordinates. Using the latitude and longitude information we can create a map showing in which areas those beneficiaries reside who got most of the subsidies. After geocoding the number of unique addresses decreased to `r f(misc_vars[misc_vars$var_name=="clean_address_count",]$val)` by `r f((misc_vars[misc_vars$var_name=="raw_address_count",]$val)-(misc_vars[misc_vars$var_name=="clean_address_count",]$val))` so aggregating will be much more accurate.
 
 ### Geographical information and statistics
 
-The Central Statistics Agency (Központi Statisztikai Hivatal - KSH) has a website where a lot of descriptive statistics are available about Hungary. A complicated [excel file](http://www.ksh.hu/docs/helysegnevtar/hnt_letoltes_2019.xls) can be downloaded and parsed to get how the country is divided into regional hierarchies. KSH has their own ID to tag areas called KSH_KOD. For the majority of cases this ID represents a settlement and contains all the zip codes of that area. Unfortunately, after several attempts to join the 2 datasets it turned out that zip codes and KSH_IDs are in a many-to-many relationship. The data provided by KSH and the agricultural subsidies had reconciliation issues too. Some zip code + settlement pairs were different in the 2 datasets while other zip codes were missing altogether from the KSH tables but were valid (as verified by online map services). I [reached out](https://kapcsolat.ksh.hu/ContactCenter/ugyworeg.xhtml?megerositokod=f1d9bd5a-2e87-4912-aae7-c7816a999ace&lang=hu) to KSH for clarification and they acknowledged the data issues. However, they will not take steps to fix them in this fundamental data source, rather redirected me at [yet another dataset](https://www.posta.hu/static/internet/download/Iranyitoszam-Internet_uj.xlsx) maintained by the Hungarian Postal Service that truly has all of the zip codes of the country. The iterative data cleaning and exploration process highlighted that there were still a few inaccuracies but those could be fixes by a small override file that is part of the project. Using these 2 datasources and a refined logic to fix mapping issues I was able to join the datasets.
+The Central Statistics Agency (Központi Statisztikai Hivatal - KSH) has a website where a lot of descriptive statistics are available about Hungary. A complicated [excel file](http://www.ksh.hu/docs/helysegnevtar/hnt_letoltes_2019.xls) can be downloaded and parsed to get how the country is divided into regional hierarchies. KSH has their own ID to tag areas called `KSH_KOD`. For the majority of cases this ID represents a settlement and contains all the zip codes of that area. Unfortunately, after several attempts to join the 2 datasets it turned out that zip codes and `KSH_ID`s are in a many-to-many relationship. The data provided by KSH and the agricultural subsidies had reconciliation issues too. Some zip code + settlement pairs were different in the 2 datasets while other zip codes were missing altogether from the KSH tables but were valid (as verified by online map services). I [reached out](https://kapcsolat.ksh.hu/ContactCenter/ugyworeg.xhtml?megerositokod=f1d9bd5a-2e87-4912-aae7-c7816a999ace&lang=hu) to KSH for clarification and they acknowledged the data issues. However, they will not take steps to fix them in this fundamental data source, rather redirected me at [yet another dataset](https://www.posta.hu/static/internet/download/Iranyitoszam-Internet_uj.xlsx) maintained by the Hungarian Postal Service that truly has all of the zip codes of the country. The iterative data cleaning and exploration process highlighted that there were still a few inaccuracies but those could be fixes by a small override file that is part of the project. Using these 2 datasources and a refined logic to fix mapping issues I was able to join the datasets.
 
 `r pagebreak()`
 # Data Exploration
 
-The data contains `r dim(agrar_full)[1]` data points, each representing a single payment. If we aggregate over addresses we get the total amount of subsidies that a household or institution received. After doing this the number of records goes down to `r dim(sum_by_address)[1]`, which means beneficiaries on average received `r round(dim(agrar_full)[1]/dim(sum_by_address)[1], digits = 2)` payments each year. Unfortunately, the data does not allow handling of cases when people move but even with this inaccuracy the overall picture is much more meaningful if we do the aggregation.
+The data contains `r f(dim(agrar_full)[1])` data points, each representing a single payment. If we aggregate over addresses we get the total amount of subsidies that a household or institution received. After doing this the number of records goes down to `r f(dim(sum_by_address)[1])`, which means beneficiaries on average received `r round(dim(agrar_full)[1]/dim(sum_by_address)[1], digits = 2)` payments each year. Unfortunately, the data does not allow handling of cases when people move but even with this inaccuracy the overall picture is much more meaningful if we do the aggregation.
 
 ## Descriptive Statistics
 
 ```{r include=FALSE, echo = FALSE, message = FALSE, warning = FALSE}
+stat_controls_sum <- tableby.control(
+  test = FALSE,
+  total = FALSE,
+  numeric.stats = c("sum"),
+  cat.stats = c("countpct"),
+  stats.labels = list(
+    sum='Sum (bn)'
+  )
+)
+
 stat_controls <- tableby.control(
   test = FALSE,
   total = FALSE,
-  numeric.stats = c("Sum", "N", "mean", "sd", "q1q3", "median", "min", "max"),
+  numeric.stats = c("N", "mean", "median", "sd", "q1q3", "min", "max"),
   cat.stats = c("countpct"),
   stats.labels = list(
-    sum='Sum',
     N='Count',
     mean = "Mean",
     sd = "StDev",
@@ -410,20 +423,34 @@ stat_controls <- tableby.control(
   )
 )
 
-full_stat_table <- tableby(year ~ .,
+full_stat_table_rest <- tableby(year ~ .,
                      data = agrar_full %>%
                        select(year,amount) %>%
                        mutate(amount = amount / 1000),
                      control = stat_controls)
+full_stat_table_sum <- tableby(year ~ .,
+                     data = agrar_full %>%
+                       select(year,amount) %>%
+                       mutate(amount = amount / 1000000000),
+                     control = stat_controls_sum)
+full_stat_table <- merge(full_stat_table_sum, full_stat_table_rest, all = TRUE)
 
-by_address_data <- sum_by_address %>%
-                    ungroup() %>%
-                    select(year,amount) %>%
-                    mutate(amount = amount / 1000)
-
-by_address_stat_table <- tableby(year ~ .,
-                       data = by_address_data,
+by_address_stat_table_rest <- tableby(year ~ .,
+                       data = sum_by_address %>%
+                         ungroup() %>%
+                         select(year,amount) %>%
+                         mutate(amount = amount / 1000),
                         control = stat_controls)
+by_address_stat_table_sum <- tableby(year ~ .,
+                       data = sum_by_address %>%
+                         ungroup() %>%
+                         select(year,amount) %>%
+                         mutate(amount = amount / 1000000000),
+                        control = stat_controls_sum)
+
+by_address_stat_table <- merge(by_address_stat_table_sum,
+                               by_address_stat_table_rest,
+                               all = TRUE)
 
 data_summary <- function(x) {
    m <- mean(x)
@@ -448,7 +475,7 @@ rm(amount)
 
 If divide the data to 10 bins (decils) and visualize the average and overall amount of money that goes into these bins we can get a sense of how skewed the distribution is.
 
-```{r fig.cap='Average and sum subsidy by decils', fig.show = "hold", out.width = "50%", echo=FALSE, results='hide', fig.height=6.8}
+```{r fig.cap='Average and sum subsidy by decils', fig.show = "hold", out.width = "50%", echo=FALSE, results='hide', fig.height=6}
 save_3d_chart(full_by_year, 10, "avg", "all_yearly")
 save_3d_chart(full_by_year, 10, "sum", "all_yearly")
 ```
@@ -520,7 +547,7 @@ ggsave(paste0(data_out, "violin_by_address.pdf"))
 
 The distribution visually is very similar to what the raw payments looked like. The top 10% accounts for more than 75% of the overall payments. On the log scale there is a steady increase between the bins except for the top 10% where the jump is higher.
 
-```{r fig.cap='Average subsidy amount by decils', fig.show = "hold", out.width = "50%", echo=FALSE, results='hide', fig.height=6.5}
+```{r fig.cap='Average subsidy amount by decils', fig.show = "hold", out.width = "50%", echo=FALSE, results='hide', fig.height=6}
 save_3d_chart(sum_by_address, 10, "avg", "summed-by-address")
 save_3d_chart(sum_by_address, 10, "log_avg", "summed-by-address")
 ```
@@ -591,7 +618,7 @@ summary(sum_by_address_indiv_stat_table,
 
 Both the average amount won by beneficiary and the total amount won surpasses the bottom 90%.
 
-```{r fig.cap='Average and sum of subsidies won by individuals', fig.show = "hold", out.width = "50%", echo=FALSE, results='hide', fig.height=6.5}
+```{r fig.cap='Average and sum of subsidies won by individuals', fig.show = "hold", out.width = "50%", echo=FALSE, results='hide', fig.height=6}
 save_3d_chart(sum_by_address_indiv, 10, "avg", "summed-by-address-indiv")
 save_3d_chart(sum_by_address_indiv, 10, "sum", "summed-by-address-indiv")
 ```
@@ -661,7 +688,7 @@ When looking at the aggregate wins by institutions sharing the same address we s
 
 If we divide the data to 10 bins of equal size the proportion of the top decil is striking in this dataset too.
 
-```{r fig.cap='Average and total of subsidies won by institutions by decils', fig.show = "hold", out.width = "50%", echo=FALSE, results='hide', fig.height=6.8}
+```{r fig.cap='Average and total of subsidies won by institutions by decils', fig.show = "hold", out.width = "50%", echo=FALSE, results='hide', fig.height=6}
 save_3d_chart(sum_by_address_firms, 10, "avg", "summed-by-address-firms")
 save_3d_chart(sum_by_address_firms, 10, "sum", "summed-by-address-firms")
 ```
@@ -744,7 +771,7 @@ ggsave(paste0(data_out, "2d_land_based_trends.pdf"))
 
 ggplot(data = aggregate(amount ~ year*reason,full_by_year_by_type,"sum"), aes(x = amount/1000000000, y = year, fill = str_wrap(reason,18))) + 
   geom_bar(stat = "identity", position = "fill") +
-  labs(x = "", y="") +
+  labs(x = "", y = "", fill = "reason") +
   theme_minimal() +
   theme(legend.position = "right") +
   guides(color=guide_legend("reason")) +
@@ -777,14 +804,16 @@ ggsave(paste0(data_out, "2d_sum_settlement_type_stacked.png"))
 
 ```{r include=FALSE, echo = FALSE, message = FALSE, warning = FALSE}
 misc_same_addresses <- readr::read_csv(paste0(data_in, "misc_same_addresses.csv"))
+misc_same_addresses$ksh_id <- as.factor(misc_same_addresses$ksh_id)
 misc_same_addresses <- misc_same_addresses %>%
   inner_join(settlement_stats, by = "ksh_id")
 ```
 
-The total amount of agricultural subsidies distributed since 2010 is `r misc_vars[misc_vars$var_name=="total_amount",]$val` HUF. From this amount `r misc_vars[misc_vars$var_name=="total_amount_address_sharing",]$val` went to beneficiaries where individuals and institutions share the address. This is more than `r floor((misc_vars[misc_vars$var_name=="total_amount_address_sharing",]$val)/(misc_vars[misc_vars$var_name=="total_amount",]$val)*100)`% of the total amount so it's worth checking if there is some pattern. The proportion of the amount of money received by firms versus individuals seems random for all settlement types except for Budapest. In the capital the share of individuals is lower for higher total amount.
+The total amount of agricultural subsidies distributed since 2010 is `r f(misc_vars[misc_vars$var_name=="total_amount",]$val)` HUF. From this amount `r f(misc_vars[misc_vars$var_name=="total_amount_address_sharing",]$val)` went to beneficiaries where individuals and institutions share the address. This is more than `r floor((misc_vars[misc_vars$var_name=="total_amount_address_sharing",]$val)/(misc_vars[misc_vars$var_name=="total_amount",]$val)*100)`% of the total amount so it's worth checking if there is some pattern. The proportion of the amount of money received by firms versus individuals seems random for all settlement types except for Budapest. In the capital the share of individuals is lower for higher total amount.
 
 ```{r fig.cap='Proportion of subsidies received by firms when sharing address with individuals', fig.subcap=c('All settlement types', 'Budapest and county capitals'), fig.ncol = 2, out.width = "50%", fig.align = "center"}
-ggplot(data = misc_same_addresses, aes(x = log10(total), y = f_pct,  color = settlement_type)) +
+ggplot(data = misc_same_addresses,
+       aes(x = log10(total), y = f_pct,  color = settlement_type)) +
   geom_point(shape = 1) +
   expand_limits(y = c(0,102)) +
   labs(x = "log10(total)", y = "fraction won by firms") +
@@ -792,14 +821,14 @@ ggplot(data = misc_same_addresses, aes(x = log10(total), y = f_pct,  color = set
 ggsave(paste0(data_out, "scatter_firm_fraction_all.png"))
 ggsave(paste0(data_out, "scatter_firm_fraction_all.pdf"))
 
-ggplot(data = misc_same_addresses %>%
-              filter(settlement_type %in% c("Budapest", "megyeszékhely")),
+ggplot(data = misc_same_addresses %>% filter(settlement_type %in% c("Budapest", "megyeszékhely")),
        aes(x = log10(total), y = f_pct,  color = settlement_type)) +
   geom_point(shape = 1) +
   geom_smooth(method = lm) +
   expand_limits(y = c(0,102)) +
   labs(x = "log10(total)", y = "") +
-  theme_minimal()
+  theme_minimal() +
+  theme(legend.position = "bottom")
 ggsave(paste0(data_out, "scatter_firm_fraction_cities.png"))
 ggsave(paste0(data_out, "scatter_firm_fraction_cities.pdf"))
 ```
@@ -816,47 +845,247 @@ misc_ppl_wins_max_by_address <- readr::read_csv(paste0(data_in, "misc_ppl_wins_m
 misc_ppl_wins_max_by_address$ppl_cat <- as.factor(misc_ppl_wins_max_by_address$ppl_cat)
 
 hun_map <- get_map(location = 'Hungary', zoom = 7, maptype = "roadmap", color = "bw")
+?get_map
 ```
 
-Here are the individuals who won at lease 1 billion HUF since 2010. Even though the names and addresses are available in the dataset I chose not to disclose those in this table.
+Here are the individuals who won at lease 1 billion HUF since 2010. Even though the names and addresses are available in the dataset I chose not to disclose those in this table. It is interesting to note that the first and third persons are likely the same individuals.
 
 ```{r results='asis'}
 kable(misc_ppl_wins_max %>%
   filter(total>1000000000) %>%
+  mutate(total=f(total)) %>%
   select(name,settlement,zip,total,num_wins=cnt),
   caption = "Individual winners with more than 1 bn HUF") %>%
   kable_styling(bootstrap_options = c("striped", "condensed"))
 ```
 
-When aggregating wins by addresses we get additional "agricultural subsidy billionares". Here are the top 10. It is interesting to note that this list is lead by an individual.
+Below are the top "agricultural subsidy billionares"; the list is created by aggregating wins by addresses. It is interesting to note that this list is lead by an individual.
 
 ```{r results='asis'}
 kable(misc_ppl_wins_max_by_address %>%
-  top_n(10) %>%
-  select(settlement,zip,total,winners=ppl),
-  caption = "Individual winners with more than 1 bn HUF") %>%
+    select(address,settlement,zip,total,winners=ppl) %>%
+    top_n(8, total) %>%
+    mutate(total=f(total)),
+  caption = "Top 8 addresses by aggregate wins") %>%
   kable_styling(bootstrap_options = c("striped", "condensed"))
 ```
 
 We can also put them on the map of Hungary.
 
-```{r fig.cap='Individuals who won more than 500 mm HUF', fig.subcap=c('Single winners', 'Individuals sharing the same address'), fig.ncol = 2, out.width = "50%", fig.align = "center"}
+```{r fig.cap='Individuals who won more than 500 mm HUF', fig.subcap=c('Single winners', 'Individuals sharing the same address'), fig.ncol = 2, out.width = "50%", fig.align = "center", fig.height=6}
 ggmap(hun_map) +
   geom_point(data = misc_ppl_wins_max, aes(x = longitude, y = latitude, size = total/1000000000), color = "purple", alpha = 0.5) +
-  labs(size = "bn Huf", color = NULL)
+  labs(x = "", y = "", size = "bn Huf", color = NULL) +
+  theme_minimal() +
+  theme(legend.position = "bottom")
 ggsave(paste0(data_out, "map_individual_winners.png"))
 ggsave(paste0(data_out, "map_individual_winners.pdf"))
 
 ggmap(hun_map) +
   geom_point(data = misc_ppl_wins_max_by_address, aes(x = longitude, y = latitude, size = total/1000000000, color = ppl_cat), alpha = 0.5) +
-  labs(size = "bn Huf", color = "winners") +
+  labs(x = "", y = "", size = "bn Huf", color = "winners") +
+  scale_fill_viridis(discrete=TRUE, direction=1, option = "D", guide = guide_legend(reverse = TRUE)) +
   theme_minimal() +
-  scale_fill_viridis(discrete=TRUE, direction=1, option = "D", guide = guide_legend(reverse = TRUE))
+  theme(legend.position = "bottom")
+
 ggsave(paste0(data_out, "map_individual_winners_by_address.png"))
 ggsave(paste0(data_out, "map_individual_winners_by_address.pdf"))
 ```
-check which firms / individuals lost / won compared to previous years
 
+```{r include=FALSE, echo = FALSE, message = FALSE, warning = FALSE}
+rm(misc_ppl_wins_max)
+rm(misc_ppl_wins_max_by_address)
+```
+
+`r pagebreak()`
+
+## Institutions
+
+```{r include=FALSE, echo = FALSE, message = FALSE, warning = FALSE}
+misc_firm_wins_max <- readr::read_csv(paste0(data_in, "misc_firm_wins_max.csv"))
+misc_firm_wins_max_by_address <- readr::read_csv(paste0(data_in, "misc_firm_wins_max_by_address.csv"))
+misc_firm_wins_max_by_address$cat <- as.factor(misc_firm_wins_max_by_address$cat)
+```
+
+Below are the largest institutional beneficiaries since 2010.
+
+```{r results='asis'}
+kable(misc_firm_wins_max %>%
+      select(name,settlement,zip,total,num_wins=cnt) %>%
+      top_n(8, total) %>%
+      mutate(name=str_trunc(name,30),total=f(total)),
+  caption = "Top 8 institutions by total subsidies") %>%
+  kable_styling(bootstrap_options = c("striped", "condensed"))
+```
+
+Some firms also share addresses with each other. Below are the addresses where the largest aggregate winners are located.
+
+```{r results='asis'}
+kable(misc_firm_wins_max_by_address %>%
+    select(address,settlement,zip,total,winners=firms) %>%
+    top_n(8, total) %>%
+    mutate(total=f(total)),
+  caption = "Top 10 addresses by aggregate institutional wins") %>%
+  kable_styling(bootstrap_options = c("striped", "condensed"))
+```
+
+We can see where they are located on the map of Hungary. For individual winners Budapest was barely visible on the map but for institutions the capital is clearly a center.
+
+```{r fig.cap='Largest 100 institutional winners', fig.subcap=c('Single winners', 'Institutions sharing the same address'), fig.ncol = 2, out.width = "50%", fig.align = "center", fig.height=6}
+ggmap(hun_map) +
+  geom_point(data = misc_firm_wins_max %>%
+               top_n(100, total),
+             aes(x = longitude, y = latitude, size = total/1000000000),
+             color = "purple", alpha = 0.5) +
+  labs(x = "", y = "", size = "bn Huf", color = NULL) +
+  theme_minimal() +
+  theme(legend.position = "bottom")
+ggsave(paste0(data_out, "map_institutional_winners.png"))
+ggsave(paste0(data_out, "map_institutional_winners.pdf"))
+
+ggmap(hun_map) +
+  geom_point(data = misc_firm_wins_max_by_address %>%
+               top_n(100, total),
+             aes(x = longitude, y = latitude, size = total/1000000000, color = cat),
+             alpha = 0.5) +
+  labs(x = "", y = "", size = "bn Huf", color = "winners") +
+  scale_fill_viridis(discrete=TRUE, direction=1, option = "D", guide = guide_legend(reverse = TRUE)) +
+  theme_minimal() +
+  theme(legend.position = "bottom")
+
+ggsave(paste0(data_out, "map_institutional_winners_by_address.png"))
+ggsave(paste0(data_out, "map_institutional_winners_by_address.pdf"))
+```
+
+```{r include=FALSE, echo = FALSE, message = FALSE, warning = FALSE}
+rm(misc_firm_wins_max)
+rm(misc_firm_wins_max_by_address)
+```
+
+## Address Sharing Individuals
+
+Having a clean, tidy dataset allows running queries that would otherwise be impossible. One example query is below: what are the addresses that have the highest number of individuals who share the same address.
+
+```{r eval=FALSE, echo=TRUE}
+() xkey
+  (select from
+    # aggregate subsidies by address and keep only those where the person count is > 5
+    (`cnt xdesc select name, cnt: count i,sum amount by settlement,address,zip from
+      # aggregate wins by individuals and addresses
+      (select sum amount by name,settlement,address,zip from
+        # filter for individuals
+        (select from .data.full where not is_firm)
+      where address<>`)
+    where cnt>5);
+```
+
+The below addresses would be worth checking for an investigative journalist.
+
+```{r include=FALSE, echo = FALSE, message = FALSE, warning = FALSE}
+misc_single_household <- readr::read_csv(paste0(data_in, "misc_single_household.csv"))
+```
+
+
+```{r results='asis'}
+kable(misc_single_household %>%
+    select(settlement,address,zip,residents=cnt,amount) %>%
+    top_n(10, residents) %>%
+    mutate(amount=f(amount)),
+  caption = "Top 10 institutions by total subsidies") %>%
+  kable_styling(bootstrap_options = c("striped", "condensed"))
+```
+
+```{r include=FALSE, echo = FALSE, message = FALSE, warning = FALSE}
+rm(misc_single_household)
+```
+
+## Settlements
+
+```{r include=FALSE, echo = FALSE, message = FALSE, warning = FALSE}
+misc_yearly_win_by_settlement <- readr::read_csv(paste0(data_in, "misc_yearly_win_by_settlement.csv"))
+misc_yearly_win_by_settlement$year <- as.factor(misc_yearly_win_by_settlement$year)
+misc_yearly_win_by_settlement$ksh_id <- as.factor(misc_yearly_win_by_settlement$ksh_id)
+
+county_data_ <- misc_yearly_win_by_settlement %>%
+  group_by(ksh_id) %>%
+  summarise(amount=mean(amount),
+            winners=mean(winners)) %>% 
+  inner_join(settlement_stats, by = "ksh_id") %>%
+  group_by(county) %>%
+  summarise(amount=sum(amount),
+            winners=sum(winners),
+            area=sum(area),
+            population=sum(population),
+            latitude=mean(latitude, na.rm = TRUE),
+            longitude=mean(longitude, na.rm = TRUE)) %>%
+  mutate(amt_per_pop=amount/population,
+         amt_per_area=amount/area,
+         winner_per_pop=winners/population)
+
+```
+
+We can also do aggregate statistics by county. The below maps show the yearly averages of subsidies and recipients by
+
+```{r echo = FALSE, message = FALSE, warning = FALSE, fig.cap=''}
+ggmap(hun_map) +
+  geom_point(data = county_data,
+             aes(x = longitude, y = latitude, size = amount/1000000000, color = amt_per_area),
+             alpha = 1) +
+  labs(x = "lon", y = "lat", size = "bn Huf", color = "amt/area") +
+  theme_minimal() +
+  theme(legend.position = "right") +
+  guides(color = guide_legend(override.aes = list(size = 8))) +
+  scale_colour_gradient(low = "orange", high = "purple")
+#ggsave(paste0(data_out, "map_institutional_winners.png"))
+#ggsave(paste0(data_out, "map_institutional_winners.pdf"))
+```
+
+
+```{r echo = FALSE, message = FALSE, warning = FALSE, fig.cap=''}
+ggmap(hun_map) +
+  geom_point(data = county_data,
+             aes(x = longitude, y = latitude, size = amount/1000000000, color = winner_per_pop*100),
+             alpha = 1) +
+  labs(x = "lon", y = "lat", size = "bn Huf", color = "winner %") +
+  theme_minimal() +
+  theme(legend.position = "right") +
+  guides(color = guide_legend(override.aes = list(size = 8))) +
+  scale_colour_gradient(low = "orange", high = "purple")
+```
+
+```{r echo = FALSE, message = FALSE, warning = FALSE, fig.cap=''}
+county_data <- misc_yearly_win_by_settlement %>%
+  select(-district,-homes,-settlement,-ksh_id,-settlement_type) %>%
+  group_by(county,year) %>%
+  summarise(amount=sum(amount),
+            winners=sum(winners),
+            latitude=mean(latitude, na.rm = TRUE),
+            longitude=mean(longitude, na.rm = TRUE),
+            area=sum(area),
+            population=sum(population)) %>%
+  group_by(county) %>%
+  summarise(amount=mean(amount),
+            winners=mean(winners),
+            latitude=mean(latitude, na.rm = TRUE),
+            longitude=mean(longitude, na.rm = TRUE),
+            area=mean(area),
+            population=mean(population)) %>%
+  mutate(amt_per_pop=amount/population,
+         amt_per_area=amount/area,
+         winner_per_pop=winners/population)
+
+ggmap(hun_map) +
+  geom_point(data = county_data,
+             aes(x = longitude, y = latitude, size = amount/1000000000, color = amt_per_area),
+             alpha = 0.9) +
+  labs(x = "lon", y = "lat", size = "bn Huf", color = "amt/area") +
+  theme_minimal() +
+  theme(legend.position = "right") +
+  guides(color = guide_legend(override.aes = list(size = 8))) +
+  scale_colour_gradient(low = "orange", high = "purple")
+#ggsave(paste0(data_out, "map_institutional_winners.png"))
+#ggsave(paste0(data_out, "map_institutional_winners.pdf"))
+```
 # Effect of elections
 
 Is there a relationship between the amount of money given to a region and the political affiliation of the municipality/county?
