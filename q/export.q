@@ -184,9 +184,38 @@ system "l ../q/elections.q";
   .agrar.save_csv["misc_single_household";.misc.single_household];
 
   .misc.yearly_win_by_settlement: () xkey
-    (select winners: count name,sum amount by settlement,ksh_id,year,is_firm,land_based from
+    (select winners: count name,sum amount by settlement,ksh_id,year,land_based from
       (select sum amount by name,settlement,address,ksh_id,year,is_firm,land_based from .data.full));
   .agrar.save_csv["misc_yearly_win_by_settlement";.misc.yearly_win_by_settlement];
+
+  .misc.amounts_for_decils: select amount, log_amt: 10 xlog amount, year from select sum amount by zip,settlement,address,year from .data.full;
+  .agrar.save_csv["misc_amounts_for_decils";.misc.amounts_for_decils];
+
+  raw_for_elections: delete land_based from (delete from .misc.yearly_win_by_settlement where land_based);
+  zeros: (select distinct settlement,ksh_id from raw_for_elections) cross update amount:0,winners:0 from select distinct year from raw_for_elections;
+  diffs: update winner_diff: deltas winners, amount_diff: deltas amount by settlement,ksh_id from select sum winners, sum amount by settlement,ksh_id,year from zeros, raw_for_elections;
+  .misc.diffs_for_elections: delete from diffs where year = `$ string min "I"$ string exec distinct year from diffs;
+  .agrar.save_csv["misc_diffs_for_elections";.misc.diffs_for_elections];
+  };
+
+.agrar.ad_hoc_requests:{
+  .agrar.save_csv["distinct_firms";select distinct name,zip,settlement,address,ksh_id from .data.firms];
+
+  // csak 2019-re tamogatas tipusra bontas, telepulesre bontas - excelbe + pivot tábla
+  (select sum amount by settlement,zip,ksh_id,is_firm,land_based,source,program,reason from select from .data.full where year=`2019)
+  lj (`ksh_id xkey select ksh_id,settlement_type,area,population,homes,district,county from .data.settlement_details)
+
+  // Top 20 largest winners/losers from Fejer - only look at non-land-based amounts, year = 2019
+  tbl:.data.full;
+  constraint: enlist(&;(~:;`land_based);(in;`ksh_id;exec distinct ksh_id from .data.settlement_details where county=`$"Fejér"));
+  records: 20;
+  yearly_amounts: ?[tbl;constraint;(`name`addr`year`zip`settlement)!(`name;(^;`address;`formatted_address);`year;`zip;`settlement);(enlist `amount)!enlist(sum;`amount)];
+  winners: select distinct name,addr,zip,settlement from yearly_amounts;
+  zeros: winners cross update amount:0 from select distinct year from yearly_amounts;
+  diffs: update diff: deltas amount by addr,zip,settlement from select names: distinct name,sum amount by addr,zip,settlement,year from zeros, () xkey yearly_amounts;
+  diffs: delete from diffs where year = `$ string min "I"$ string exec distinct year from diffs;
+  fejer_winners: () xkey (select from (`diff xdesc diffs) where ({[r;x]x in r#x}[records;];i) fby year),select from (`diff xasc diffs) where ({[r;x]x in r#x}[records;];i) fby year;
+  .agrar.save_csv["fejer_megye_top20";update names: {";" sv string x}'[names] from xcols[`addr`zip`settlement`year`amount`diff;fejer_winners]];
   };
 
 // function to generate yearly diff based on dynamic constraints
