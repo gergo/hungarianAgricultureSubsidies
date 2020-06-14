@@ -403,10 +403,16 @@ ls -lh ../output/agrar_full.csv | awk '{print $5,$9}'
 
 To eliminate redundancies and make the dataset more compact we can normalize it by extracting various aspects of the data like subsidy type, settlement information and the beneficiaries.
 
-```{r}
+```{r echo = FALSE, message = FALSE, warning = FALSE, fig.cap='Denormalized schema of agricultural subsidies'}
 file_path <- paste0(dir,"/er.yml")
 dm <- dm_read_yaml(file_path)
-graph <- dm_create_graph(dm, rankdir = "BT", col_attr = c("column", "type"))
+
+display <- list(
+  accent1 = c("funds", "wins"),
+  accent2 = c("settlements", "winners")
+  )
+
+graph <- dm_create_graph(dm_set_display(dm, display), rankdir = "RL", col_attr = c("column", "type"))
 dm_render_graph(graph)
 ```
 
@@ -994,8 +1000,7 @@ rm(misc_firm_wins_max_by_address)
 
 Having a clean, tidy dataset allows running queries that would otherwise be impossible. One example query is below: what are the addresses that have the highest number of individuals who share the same address.
 
-```{r engine="python",eval=FALSE, echo=TRUE}
-?engine_output
+```{r engine="bash",eval=FALSE, echo=TRUE}
 () xkey
   (select from
     # aggregate subsidies by address and keep only those where the person count is > 5
@@ -1060,9 +1065,9 @@ ggmap(hun_map) +
   geom_point(data = county_data_land_based,
              aes(x = longitude, y = latitude, size = amt_per_area, color = amount/1000000000),
              alpha = 1) +
-  labs(x = "lon", y = "lat", size = "amt/area", color = "bn Huf") +
+  labs(x = "lon", y = "lat", color = "amt/area", size = "bn Huf") +
   theme_minimal() +
-  theme(legend.position = "bottom") +
+  theme(legend.position = "right") +
   guides(color = guide_legend(override.aes = list(size = 8))) +
   scale_colour_gradient(low = "orange", high = "purple")
 ggsave(paste0(data_out, "map_land_based_average.png"))
@@ -1072,7 +1077,9 @@ ggsave(paste0(data_out, "map_institutional_winners.pdf"))
 ## Yearly Changes
 
 # Effect of elections
-
+```{r}
+# misc_diffs_for_elections
+```
 Is there a relationship between the amount of money given to a region and the political affiliation of the municipality/county?
 
 Election data: https://drive.google.com/file/d/1E8oMR97J-_H9vnymzEdF29GN0o6LlkqN/
