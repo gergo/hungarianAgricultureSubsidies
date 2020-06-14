@@ -1,0 +1,77 @@
+---
+output: html_document
+runtime: shiny
+---
+    
+```{r setup, include=FALSE, echo = FALSE, message = FALSE, warning = FALSE}
+knitr::opts_chunk$set(echo = FALSE, message = FALSE, warning = FALSE, fig.pos = 'H')
+rm(list = ls())
+sink("/dev/null")
+
+list.of.packages <-c("tidyverse",
+                     "ggplot2",
+                     "data.table",
+                     "plot3D",
+                     "viridis",
+                     "knitr"
+                     )
+
+new.packages <- list.of.packages[!(list.of.packages %in% installed.packages()[,"Package"])]
+if(length(new.packages)>0) {install.packages(new.packages)}
+lapply(list.of.packages, require, character.only = TRUE)
+
+dir <- getwd()
+data_in <- paste0(dir,"/../output/")
+data_out <- paste0(dir,"/../imgs/")
+
+amounts <- readr::read_csv(paste0(data_in, "misc_amounts_for_decils.csv"))
+amounts$year <- as.factor(amounts$year)
+amounts$log_amt <- NULL
+amounts <- amounts %>%
+      mutate(amount = amount/1000000)
+
+distinct_years <- amounts %>%
+  select(year) %>%
+  distinct()
+years <- dim(distinct_years)[1]
+
+options(scipen=999)
+set.seed(42)
+```
+
+```{r}
+inputPanel(
+    sliderInput("bins", "Number of bins:", min = 1, max = 200, value = 10, step = 1),
+    radioButtons("target_var",
+                 label = "Target variable",
+                 choices = list("avg" = "avg", "sum" = "sum", "median" = "median"))
+)
+renderPlot({
+  bins <- input$bins
+  target_var <- input$target_var
+  
+  data <- amounts %>%
+    mutate(rank = ntile(amount,bins)) %>%
+    group_by(year,rank) %>%
+    summarise(cnt=n(),
+              avg=mean(amount),
+              median=median(amount),
+              sum=sum(amount)) %>%
+    arrange(desc(year))
+
+  chart_data<- data %>%
+    reshape2::dcast(rank ~ year, value.var = target_var) %>%
+    column_to_rownames(var = "rank") %>%
+    as.matrix()
+  
+  hist3D(x = 1:bins, y = 1:years, z = chart_data,
+         bty = "g", phi = 20, theta = -60,
+         main = paste0(target_var, " (HUF mm)"),
+         xlab = "bins", ylab = "years", zlab = target_var,
+         border = "black", shade = 0.3, expand = 0.9, contour = TRUE,
+         col=ramp.col(c("yellow", "purple")),
+         space = 0.25, d = 3,
+         colkey = list(side = 4, length = 0.6, width = 0.5, dist = -0.03)
+         )
+}, width = 800, height = 600)
+```
