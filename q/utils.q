@@ -30,7 +30,7 @@
 .agrar.given_names: .agrar.female_names,.agrar.male_names;
 .agrar.remove_names: `$("Dr.";"dr.";"Dr";"dr";"néhai";"Néhai");
 
-.agrar.raw_loaded:0b;
+.data.raw_loaded:0b;
 
 ///////////////////
 // Data cleaning
@@ -182,16 +182,16 @@
   };
 
 .agrar.load_csvs:{[]
-  if[.agrar.raw_loaded;:.agrar.raw];
+  if[.data.raw_loaded;:.data.raw];
   .agrar.log "loading raw CSVs";
   files: system "ls ",.agrar.input, "utf8_*csv";
   data_2010: .agrar.process_csv .agrar.read_2010_file[];
   raw_data: data_2010, raze {.agrar.process_csv .agrar.read_file x} each files;
 
   raw_data: .agrar.fix_missing_addresses[raw_data];
-  .agrar.raw: raw_data;
-  .agrar.raw_loaded: 1b;
-  .agrar.raw
+  .data.raw: raw_data;
+  .data.raw_loaded: 1b;
+  .data.raw
   };
 
 .agrar.determine_gender:{[name]

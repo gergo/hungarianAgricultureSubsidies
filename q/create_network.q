@@ -57,8 +57,8 @@ system "l ../q/scores.q";
   };
 
 .agrar.init:{[]
-  .agrar.raw: delete reason, program from .agrar.load_individuals[500000];
-  .agrar.compact: .agrar.create_compact[.agrar.raw;1000000];
+  .data.raw: delete reason, program from .agrar.load_individuals[500000];
+  .agrar.compact: .agrar.create_compact[.data.raw;1000000];
   .agrar.network: .agrar.create_network_by_zip[.agrar.compact];
 
   .agrar.log "saving csvs";

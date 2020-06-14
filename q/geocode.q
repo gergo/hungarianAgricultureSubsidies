@@ -78,11 +78,11 @@ system "l ../q/utils.q";
   };
 
 .geocode.init_pre:{[]
-  .agrar.raw: .agrar.load_csvs[];
+  .data.raw: .agrar.load_csvs[];
   };
 
 if[`GEOCODE_PRE=`$.z.x[0];
   .geocode.init_pre[];
-  unprocessed: .geocode.get_unprocessed_addresses[.agrar.raw];
+  unprocessed: .geocode.get_unprocessed_addresses[.data.raw];
   .geocode.split[unprocessed];
   ];
