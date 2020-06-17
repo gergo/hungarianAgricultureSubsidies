@@ -1,5 +1,6 @@
 ---
 output: html_document
+title: "Distribution of n-tiles in Hungarian agricultural subsidy data"
 runtime: shiny
 ---
     
@@ -8,23 +9,14 @@ knitr::opts_chunk$set(echo = FALSE, message = FALSE, warning = FALSE, fig.pos = 
 rm(list = ls())
 sink("/dev/null")
 
-list.of.packages <-c("tidyverse",
-                     "ggplot2",
-                     "data.table",
-                     "plot3D",
-                     "viridis",
-                     "knitr"
-                     )
+library(tidyverse)
+library(ggplot2)
+library(data.table)
+library(plot3D)
+library(viridis)
+library(knitr)
 
-new.packages <- list.of.packages[!(list.of.packages %in% installed.packages()[,"Package"])]
-if(length(new.packages)>0) {install.packages(new.packages)}
-lapply(list.of.packages, require, character.only = TRUE)
-
-dir <- getwd()
-data_in <- paste0(dir,"/../output/")
-data_out <- paste0(dir,"/../imgs/")
-
-amounts <- readr::read_csv(paste0(data_in, "misc_amounts_for_decils.csv"))
+amounts <- readr::read_csv("./data/misc_amounts_for_decils.csv")
 amounts$year <- as.factor(amounts$year)
 amounts$log_amt <- NULL
 amounts <- amounts %>%
