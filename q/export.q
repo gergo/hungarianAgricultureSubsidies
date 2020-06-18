@@ -231,6 +231,29 @@ system "l ../q/elections.q";
   xcols[`addr`zip`settlement`year`amount`diff;ret]
   };
 
+.agrar.read_opten:{[f]
+  t: ("IIFFFFFBBBBBBBBFSISSIFFS";enlist",")0:`$"../input/opten/",f;
+  t
+  };
+
+.agrar.firm_matching:{[]
+  agrar_firms: select from .data.full where is_firm,year=`2018;
+  summed: select sum amount%1000 by name,zip,settlement,address,source,land_based,ksh_id from agrar_firms;
+  national: select national: sum amount by name,zip,settlement,address from select from summed where source=`Nemzeti;
+  eu_land_based: select eu_land_based: sum amount by name,zip,settlement,address from select from summed where land_based,source=`EU;
+  eu_not_land_based: select eu_not_land_based: sum amount by name,zip,settlement,address from select from summed where (not land_based),source=`EU;
+
+  combined: update a_national:0^national,a_eu_land_based:0^eu_land_based,a_eu_not_land_based:0^eu_not_land_based from national uj eu_land_based uj eu_not_land_based;
+  combined: update a_total: a_national+a_eu_land_based+a_eu_not_land_based from delete national,eu_land_based,eu_not_land_based from combined;
+  combined: update a_national_fraction:a_national%a_total, a_eu_land_based_fraction:a_eu_land_based%a_total, a_eu_not_land_based_fraction:a_eu_not_land_based%a_total from combined;
+
+  opten: .agrar.read_opten["balance_sheet_szekely_merged_fname_18.csv"];
+
+  joined: delete region,teaor08_2d,teaor03_2d,originalid,year,wbill,orig_score,org_score,text_score,found_name from opten ij combined;
+  final: update sales_per_emp:sales%emp,avg_salary:persexp%emp,tax:pretax-aftertax,pretax_per_sales:pretax%sales,subsidy_oriented: (a_total>sales)&(sales>0) from joined;
+  .agrar.save_csv["firms_2018_modeling";final];
+  };
+
 if[`EXPORT=`$.z.x[0];
   .agrar.export.init[];
   .agrar.export.normalize[];
