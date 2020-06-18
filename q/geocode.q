@@ -10,23 +10,33 @@ system "l ../q/utils.q";
   t
   };
 
-// Load an individual csv with geo-coded addresses
-.geocode.process_files:{[]
+.geocode.process_files_raw:{[]
   .agrar.log "Loading geo-coded files";
   files: system "ls ",.geocode.dir,"agrar_output_*.csv";
-  raw: raze .geocode.process_file each files;
+  update index:i from raze .geocode.process_full_file each files
+  };
 
-  raw: update index:i from raw;
-
-  // remove probable data errors:
+// Load an individual csv with geo-coded addresses
+.geocode.load_geocoded_addresses:{[]
+  raw: .geocode.load_clean[];
+  // remove probable data errors
   raw: delete from raw where not formatted_address like "*Hungary";
+  raw: select from raw where accuracy in `ROOFTOP`RANGE_INTERPOLATED;
   raw: delete from raw where postcode<>zip;
+  raw: update formatted_address: {[a;p;s]`$ ssr[;string[s],", ";""]ssr[;", ",string[p]," Hungary";""] string a}'[geocoded_address;postcode;settlement] from update geocoded_address: formatted_address from raw;
   raw
   };
 
-.geocode.process_file:{[f]
+.geocode.process_full_file:{[f]
   .agrar.log "  processing ", f;
   t: ("ISFFSSSISISSISSS";enlist",")0:`$f;
+  t
+  };
+
+.geocode.load_clean:{[]
+  f: .geocode.dir,"geocoded_clean.csv";
+  .agrar.log "  processing ", f;
+  t: ("ISFFSISISSI";enlist",")0: system "unzip -c ",f," | sed -e '1,3d'";
   t
   };
 
@@ -49,7 +59,7 @@ system "l ../q/utils.q";
   unique_addresses: select distinct zip,settlement,address from addresses;
 
   // load addresses that were already processed for geocoding
-  processed: .geocode.process_files[];
+  processed: .geocode.load_geocoded_addresses[];
   processed_addresses: `zip`settlement`address xkey select distinct zip,settlement,address,status from processed where status=`OK;
 
   // delete addresses that were already successfully geocoded
@@ -57,15 +67,22 @@ system "l ../q/utils.q";
   };
 
 .geocode.save_all_processed:{[]
-  (hsym `$.geocode.dir,"agrar_output_all.csv") 0: "," 0: .geocode.process_files[];
+  (hsym `$.geocode.dir,"agrar_output_all.csv") 0: "," 0: .geocode.process_files_raw[];
+  };
+
+.geocode.save_clean_processed:{[]
+  raw: .geocode.process_files_raw[];
+  raw: select index,formatted_address,latitude,longitude,accuracy,postcode,status,zip,settlement,address,number_of_results from raw;
+  raw: update index:i from raw;
+  (hsym `$.geocode.dir,"geocoded_clean.csv") 0: "," 0: raw;
   };
 
 .geocode.init_pre:{[]
-  .agrar.raw: .agrar.load_csvs[];
+  .data.raw: .agrar.load_csvs[];
   };
 
 if[`GEOCODE_PRE=`$.z.x[0];
   .geocode.init_pre[];
-  unprocessed: .geocode.get_unprocessed_addresses[.agrar.raw];
+  unprocessed: .geocode.get_unprocessed_addresses[.data.raw];
   .geocode.split[unprocessed];
   ];

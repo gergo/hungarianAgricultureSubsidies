@@ -3,6 +3,7 @@
 .agrar.output: .agrar.root,"/../output/";
 .agrar.names_dl: .agrar.root,"/../input/names/";
 .agrar.names_url: "http://www.nytud.mta.hu/oszt/nyelvmuvelo/utonevek/";
+.data.misc_vars: ([var_name: `symbol$()]; val: `symbol$());
 
 .agrar.log:{[msg]
   show string[.z.T],": ",msg;
@@ -29,7 +30,7 @@
 .agrar.given_names: .agrar.female_names,.agrar.male_names;
 .agrar.remove_names: `$("Dr.";"dr.";"Dr";"dr";"néhai";"Néhai");
 
-.agrar.raw_loaded:0b;
+.data.raw_loaded:0b;
 
 ///////////////////
 // Data cleaning
@@ -103,32 +104,32 @@
   };
 
 .agrar.remove_whitespace:{[word]
-  ssr[word;"  ";" "]
+  {x where not(and':)null x} word
   };
 
 .agrar.remove_dots:{[word]
-  ssr[;",";" "] ssr[;".";""] word
+  ssr[;"-, ";" "] ssr[;" -";"-"] ssr[;"- ";"-"] ssr[;",";" "] ssr[;".";""] word
   };
 
 .agrar.remove_apostrophes:{[word]
   ssr[word;"\\\"";""]
   };
 
-.agrar.ugly_upper:{[w] ssr[;"á";"Á"]ssr[;"é";"É"]ssr[;"í";"Í"]ssr[;"ó";"Ó"]ssr[;"ö";"Ö"]ssr[;"ő";"Ő"]ssr[;"ú";"Ú"]ssr[;"ü";"Ü"]ssr[;"ű";"Ű"] upper w};
-.agrar.ugly_lower:{[w] ssr[;"Á";"á"]ssr[;"É";"é"]ssr[;"Í";"í"]ssr[;"Ó";"ó"]ssr[;"Ö";"ö"]ssr[;"Ő";"ő"]ssr[;"Ú";"ú"]ssr[;"Ü";"ü"]ssr[;"Ű";"ű"] lower w};
-
-.agrar.lowerChars: ("á";"é";"í";"ó";"ö";"ő";"ú";"ü";"ű");
-.agrar.upperChars: ("Á";"É";"Í";"Ó";"Ö";"Ő";"Ú";"Ü";"Ű");
+.agrar.lowerChars: ("áéíóöőúüű");
+.agrar.upperChars: ("ÁÉÍÓÖŐÚÜŰ");
 .agrar.toUpperMap:(.agrar.lowerChars!.agrar.upperChars);
+.agrar.upper:{[w]upper w^'(.agrar.toUpperMap)@/:w};
+.agrar.lower:{[w]lower w^'(.agrar.upperChars!.agrar.lowerChars)@/:w};
 .agrar.capitalize:{[word]
-  startsWithSpecialChar: (2#word) in .agrar.lowerChars;
+  word: .agrar.lower word;
+  startsWithSpecialChar: (2#word) in 0N 2 # .agrar.lowerChars;
   $[startsWithSpecialChar;
-    :(.agrar.toUpperMap 2#word),.agrar.ugly_lower 2_word;
-    :(upper 1 # word),.agrar.ugly_lower 1 _ word]
+    :(.agrar.toUpperMap 2#word), 2_word;
+    :(upper 1 # word),1_word]
   };
 
 .agrar.fix_name:{[nm]
-  `$ " " sv .agrar.capitalize each " " vs .agrar.remove_whitespace .agrar.remove_dots .agrar.remove_apostrophes string nm
+  `$ " " sv .agrar.capitalize each string (`$ raze ("-" vs) each " " vs .agrar.remove_whitespace .agrar.remove_dots .agrar.remove_apostrophes string nm) except `
   };
 
 .agrar.process_csv:{[tbl]
@@ -151,12 +152,12 @@
   tbl: update is_firm:1b from tbl where name_parts>8;
   .agrar.log "marking firms based on keywords";
   raw_firm_keywords: read0 hsym `$"../input/names/firm_keywords.txt";
-  firm_keywords: {"*",x,"*"} each .agrar.ugly_upper each raw_firm_keywords;
+  firm_keywords: {"*",x,"*"} each .agrar.upper each raw_firm_keywords;
 
   // keyword-based matching is quite slow so only run on rows we have not categorized yet
   known_firms: select from tbl where is_firm;
   tbl: delete from tbl where is_firm;
-  tbl: update upper_name: {`$ .agrar.ugly_upper string x}'[name] from tbl;
+  tbl: update upper_name: {`$ .agrar.upper string x}'[name] from tbl;
   tbl: known_firms,delete upper_name from update is_firm:1b from tbl where any upper_name like/: firm_keywords;
 
   .agrar.log "marking land-based wins";
@@ -169,27 +170,28 @@
   tbl
   };
 
-.agrar.load_raw:{[]
+.agrar.load_vars:{[]
   data_2010: .agrar.read_2010_file[];
   files: system "ls ",.agrar.input, "utf8_*csv";
   raw_data: data_2010, raze .agrar.read_file each files;
-  count select distinct name,zip,settlement,address from raw_data;
-  // 532221
-  count select distinct name,zip,settlement,address from .data.full;
-  // 518196
+  `.data.misc_vars insert (`raw_entity_count; `$ string count select distinct name,zip,settlement,address from raw_data);
+  `.data.misc_vars insert (`clean_entity_count; `$ string count select distinct name,zip,settlement,address from .data.full);
+  `.data.misc_vars insert (`raw_address_count; `$ string count select distinct zip,settlement,address from raw_data);
+  `.data.misc_vars insert (`clean_address_count; `$ string count select distinct zip,settlement,address from .data.full);
+  `.data.misc_vars insert (`total_amount; `$ string exec sum amount from .data.full);
   };
 
 .agrar.load_csvs:{[]
-  if[.agrar.raw_loaded;:.agrar.raw];
+  if[.data.raw_loaded;:.data.raw];
   .agrar.log "loading raw CSVs";
   files: system "ls ",.agrar.input, "utf8_*csv";
   data_2010: .agrar.process_csv .agrar.read_2010_file[];
   raw_data: data_2010, raze {.agrar.process_csv .agrar.read_file x} each files;
 
   raw_data: .agrar.fix_missing_addresses[raw_data];
-  .agrar.raw: raw_data;
-  .agrar.raw_loaded: 1b;
-  .agrar.raw
+  .data.raw: raw_data;
+  .data.raw_loaded: 1b;
+  .data.raw
   };
 
 .agrar.determine_gender:{[name]

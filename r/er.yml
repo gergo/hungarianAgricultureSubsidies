@@ -1,0 +1,51 @@
+# data model segments
+
+- segment: &winner Beneficiary
+- segment: &money Subsidy
+
+# Tables and columns
+
+- table: funds
+  segment: *money
+  columns:
+    fund_id: {key: yes, type: numeric}
+    reason: {type: string}
+    program: {type: string}
+    source: {type: string}
+    land_based: {type: boolean}
+
+- table: settlements
+  segment: *winner
+  columns:
+    settlement_id: {key: yes, type: numeric}
+    zip: {type: numeric}
+    ksh_id: {type: numeric}
+    settlement_type: {type: string}
+    county: {type: string}
+    district: {type: string}
+    district_code: {type: numeric}
+    district_capital: {type: string}
+    area: {type: numeric}
+    population: {type: numeric}
+    homes: {type: numeric}
+    county_capital: {type: string}
+
+- table: winners
+  segment: *winner
+  columns:
+    winner_id: {key: yes, type: numeric}
+    settlement_id: {ref: settlements, type: numeric}
+    name: {type: string}
+    gender: {type: string}
+    address: {type: string}
+    is_firm: {type: boolean}
+    latitude: {type: numeric}
+    longitude: {type: numeric}
+
+- table: wins
+  segment: *money
+  columns:
+    winner_id: {ref: winners, type: numeric}
+    fund_id: {ref: funds, type: numeric}
+    amount: {type: numeric}
+    year: {type: numeric}

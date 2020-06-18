@@ -5,7 +5,7 @@ system "l ../q/utils.q";
 system "l ../q/create_network.q";
 
 .agrar.analyze.tiborcz:{[]
-  .tiborcz.raw: select from .agrar.ppl where upper[name] like "*TIBORCZ*";
+  .tiborcz.raw: select from .data.ppl where upper[name] like "*TIBORCZ*";
   .tiborcz.overview: select count i, sum amount by name,zip,address from .tiborcz.raw;
   .tiborcz.yearly_wins: select sum amount by year from .tiborcz.raw;
   .tiborcz.avg_wins: `avg_win xdesc update avg_win:amt%cnt from select amt: sum amount,cnt: count i by address from .tiborcz.raw;
@@ -14,7 +14,7 @@ system "l ../q/create_network.q";
 
 .agrar.analyze.felcsut:{[]
   // Felcsut and neighboring towns
-  .felcsut.raw: select from .agrar.ppl where zip in (8086;8087;2063;2066;2060;2065;2091);
+  .felcsut.raw: select from .data.ppl where zip in (8086;8087;2063;2066;2060;2065;2091);
   .felcsut.big_wins: `amount xdesc select count i, sum amount by name, address from .felcsut.raw;
   .felcsut.compact: .agrar.create_compact[.felcsut.raw;2500000];
   .felcsut.compact: update settlement_addr:{`$ string[x]," ",string[y]}'[settlement;address] from .felcsut.compact;
@@ -30,13 +30,12 @@ system "l ../q/create_network.q";
   };
 
 .agrar.analyze.init:{[]
-  .agrar.raw: .agrar.load_csvs[];
-  .agrar.firms: select from .agrar.raw where is_firm;
-  .agrar.ppl: .agrar.load_individuals[0];
+  .dara.raw: .agrar.load_csvs[];
+  .agrar.firms: select from .data.raw where is_firm;
+  .data.ppl: .agrar.load_individuals[0];
 
   .agrar.analyze.felcsut[];
   .agrar.analyze.tiborcz[];
-  .agrar.analyze.big_wins[];
   };
 
 if[`ANALYSIS=`$.z.x[0];
