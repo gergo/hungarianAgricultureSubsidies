@@ -179,6 +179,8 @@
   `.data.misc_vars insert (`raw_address_count; `$ string count select distinct zip,settlement,address from raw_data);
   `.data.misc_vars insert (`clean_address_count; `$ string count select distinct zip,settlement,address from .data.full);
   `.data.misc_vars insert (`total_amount; `$ string exec sum amount from .data.full);
+  `.data.misc_vars insert (`one_thousand_amounts; `$ string count select from .data.full where amount<1000);
+  `.data.misc_vars insert (`ten_thousand_amounts; `$ string count select from .data.full where amount<10000);
   };
 
 .agrar.load_csvs:{[]

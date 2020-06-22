@@ -26,27 +26,26 @@ header-includes:
     - \usepackage{float}
     - \usepackage{dcolumn}
     - \floatplacement{figure}{H}
+    - \floatplacement{table}{H}
 ---
 
 ```{r setup, include=FALSE, echo = FALSE, message = FALSE, warning = FALSE}
-knitr::opts_chunk$set(echo = FALSE, message = FALSE, warning = FALSE, fig.pos = 'H')
+knitr::opts_chunk$set(
+	echo = FALSE,
+	fig.pos = "H",
+	message = FALSE,
+	warning = FALSE
+)
 rm(list = ls())
 sink("/dev/null")
 # devtools::install_github("bergant/datamodelr")
 
-list.of.packages <-c("tidyverse",
-                     "ggplot2",
-                     "data.table",
-                     "plot3D",
-                     "arsenal",
-                     "forcats",
-                     "viridis",
-                     "scales",
-                     "knitr",
-                     "kableExtra",
-                     "ggmap",
-                     "DiagrammeR",
-                     "datamodelr"
+list.of.packages <-c("tidyverse", "data.table",
+                     "ggplot2", "ggmap", "plot3D", "viridis",
+                     "scales", "knitr", "kableExtra",
+                     "arsenal", "forcats",
+                     "DiagrammeR", "datamodelr",
+                     "caret", "ROCR", "ranger", "skimr", "glmnet", "rattle"
                      )
 
 new.packages <- list.of.packages[!(list.of.packages %in% installed.packages()[,"Package"])]
@@ -159,8 +158,9 @@ years <- dim(distinct_years)[1]
 MAPS_API_KEY <- read_file("../local/MAPS_API_KEY.txt")
 register_google(MAPS_API_KEY)
 
+random_seed <- 42
 options(scipen=999)
-set.seed(42)
+set.seed(random_seed)
 knitr::opts_chunk$set(echo=FALSE)
 ```
 
@@ -243,9 +243,10 @@ ggsave(paste0(data_out, "2d_sum_source_stacked.pdf"))
 
 The data is freely available on the website of the [Hungarian Treasury](https://www.mvh.allamkincstar.gov.hu/kozzeteteli-listak1) but it is difficult to work with. Most of the money comes from the European Union so at least for the European Authorities it would be easy to spot if it was manipulated. Very limited analysis has been done on this data except for some high-level statistics and targeted investigations for high-profile actors; those concluded that the numbers were accurate.
 
-Similarly to other datasets made public by government agencies, this one is difficult to work with for various reasons. To hide the true nature of their activities, state actors often comply with their own laws only to a minimal extent. They will make public whatever they are legally required to do so, but they are not motivated to make it easy to use. Another important reason for the badness of the data is that state agencies do not represent an attractive workplace for highly skilled workers. As a result, government agencies simply lack the talent to make great, public datasets. Cleaning and enriching the dataset would allow investigative journalists, non-profits or curious citizens to learn about this domain. This paper covers the initial efforts to solve this problem. The data transformation and analysis scripts are all publicly available on [GitHub](https://github.com/gergo/hungarianAgricultureSubsidies).
+Similarly to other datasets made public by government agencies, this one is difficult to work with for various reasons. To hide the true nature of their activities, state actors often comply with their own laws only to a minimal extent. They will make public whatever they are legally required to do so, but they are not motivated to make it easy to use. Another important reason for the badness of the data is that state agencies do not represent an attractive workplace for highly skilled workers. As a result, government agencies simply lack the talent to make great, public datasets. Cleaning and enriching the data would allow investigative journalists, non-profits or curious citizens to learn about this domain. This paper covers the initial efforts to solve this problem. The data transformation and analysis scripts are all publicly available on [GitHub](https://github.com/gergo/hungarianAgricultureSubsidies).
 
 `r pagebreak()`
+
 # Data Processing Pipeline
 
 The data has to go through a cleaning and transformation pipeline to perform various error corrections and enhancements. There are other, freely available datasets (e.g.: socio-economic, elections) that can be merged with the agricultural subsidies to provide a wide range of descriptive variables.
@@ -254,7 +255,7 @@ When creating the data engineering pipeline the aim was to make it as automatic 
 
 ## Runtime Dependencies
 
-Data processing and analysis can be performed on a personal computer usingthe following open-source or free tools.
+Data processing and analysis can be performed on a personal computer using the following open-source or free tools.
 
 - **Bash**: The various data sources can be downloaded and processed by executing a handful of shell scripts. Thus a unix environment with a command line is required.
 - **KDB**: To efficiently process the raw data and merge it with other datasets I use a programming language called q that comes with an in-memory database solution called KDB. It is free to [download](https://kx.com/connect-with-us/download/) for non-commercial use.
@@ -263,19 +264,19 @@ Data processing and analysis can be performed on a personal computer usingthe fo
 
 ## Download Raw Data
 
-The raw dataset is available from 2011 on the website of the [Hungarian Treasury](https://www.mvh.allamkincstar.gov.hu/kozzeteteli-listak1). The site provides an on-line search interface and links to compressed csv files that contain yearly batches of the subsidies. The website has direct links to the datasets from the past 5 years but based on the patterns it is not difficult to figure out how to download earlier batches and luckily most of the links still work. Data for 2010 used to be available on the site but it is no longer the case; I added that as part of the project and adjusted the download scripts to handle that in a transparent way.
+The raw dataset is available from 2011 on the website of the [Hungarian Treasury](https://www.mvh.allamkincstar.gov.hu/kozzeteteli-listak1). The site provides an on-line search interface and links to compressed csv files that contain yearly batches of the subsidies. The website has direct links to the datasets from the past 5 years but based on the patterns it is possible to figure out how to download earlier batches and luckily most of the links still work. Data for 2010 used to be available on the site but it is no longer the case; I added that as part of the project and adjusted the download scripts to handle that in a transparent way.
 
 The raw files are quite large:
 
-```{r, engine = 'bash', eval = TRUE}
+```{r engine = 'bash', eval = TRUE}
 ls -lh ../input/csv/*.csv | awk '{print $5,$9}' | paste - -
 ```
 
 ## Fix Character Encoding
 
-The original files are in `ISO-8859-2` encoding (aka. `Latin-2`). After converting the data to `UTF-8` it is in a format that programming languages can deal with in a more natural way. The contents look like this:
+The original files are in `ISO-8859-2` encoding (aka. `Latin-2`). After converting the data to `UTF-8` it is in a format that programming languages can deal with in a more natural way. Here are some sample rows:
 
-```{r, engine = 'bash', eval = TRUE}
+```{r engine = 'bash', eval = TRUE}
 # most rows are long; to make the sample fit to the generated document I filter for rows with <96 characters
 cat ../input/csv/utf8_2011.csv | head -n1000 | awk 'length($0) < 96' | head -n10
 ```
@@ -288,13 +289,13 @@ During exploratory data analysis I found multiple versions of some entities. Fix
 - **Character cases**: Some names had multiple versions with inconsistent capitalizations (eg. all caps or 2 upper-case starting characters) so I split names by spaces and capitalized only the first character in each name part. Unfortunately, the built-in `upper`/`lower` functions of Q could not handle Hungarian characters with accents so I had to implement custom logic to do these transformations.
 - **Remove dots**: Some names had multiple variations based on how abbreviations in their name parts were written: some had "." while other rows did not.
 
-The above steps reduced the unique number of entities by `r f((misc_vars[misc_vars$var_name=="raw_entity_count",]$val)-(misc_vars[misc_vars$var_name=="clean_entity_count",]$val))` from `r f(misc_vars[misc_vars$var_name=="raw_entity_count",]$val)` to `r f(misc_vars[misc_vars$var_name=="clean_entity_count",]$val)`.
+The above steps reduced the number of distinct beneficiaries by `r f((misc_vars[misc_vars$var_name=="raw_entity_count",]$val)-(misc_vars[misc_vars$var_name=="clean_entity_count",]$val))` from `r f(misc_vars[misc_vars$var_name=="raw_entity_count",]$val)` to `r f(misc_vars[misc_vars$var_name=="clean_entity_count",]$val)`.
 
 ## Identify Institutions
 
-Individuals and institutions are not separated in the data. There is no indication of the beneficiary type but it would be important to investigate the 2 groups separately. I made the initial assumption that any name with 8 or more name parts is a firm. For shorted names I identified a large number of keywords that indicate that the beneficiary is an institution. Here is a sample:
+Individuals and institutions are not separated in the data. There is no indication of the beneficiary type but it would be important to investigate the 2 groups separately. I made the initial assumption that any name with 8 or more name parts is a firm. For shorted=r names I identified a large number of keywords that indicate that the beneficiary is an institution. Here are some of the keywords:
 
-```{r, engine = 'bash', eval = TRUE}
+```{r engine = 'bash', eval = TRUE}
 paste -s -d" " ../input/names/firm_keywords.txt | fold -w 90 | head -n7
 ```
 
@@ -322,7 +323,7 @@ ggsave(paste0(data_out, "2d_sum_isfirm_stacked.pdf"))
 
 ## Gender Information
 
-Most of the non-institutional beneficiaries are Hungarian citizens. It would be interesting to see the gender-based distribution of the subsidies given to people. This information is not in the data but we can split citizens to "male" and "female" categories based on their names. All given names that are legally allowed in Hungary are available on the website of the [Hungarian Scientific Academy](http://www.nytud.mta.hu/oszt/nyelvmuvelo/utonevek/). Names not in the lists are either of foreign origin or contain some typos so they will be categorized as 'unknown'. Luckily, the amount of `unknown` records was not too much so I manually created additional lists to help categorize the unknowns. Some female citizens changed their legal names to that of their husbands by adding a "-né" postfix. This pattern is easy to find so that is also taken into account. This will not be 100% accurate but the data does not enable a better approach.
+Most of the non-institutional beneficiaries are Hungarian citizens. It would be interesting to see the gender-based distribution of the subsidies given to people. This information is not in the data but we can split citizens to binary "male" and "female" categories based on their names. Since there is no other information in the data this is the only way to split the people. All given names that are legally allowed in Hungary are available on the website of the [Hungarian Scientific Academy](http://www.nytud.mta.hu/oszt/nyelvmuvelo/utonevek/). Names not in the lists are either of foreign origin or contain some typos so they will be categorized as 'unknown'. Luckily, the amount of `unknown` records was not too much so I manually created additional lists to help categorize the unknowns. Some female citizens changed their legal names to that of their husbands by adding a "-né" postfix. This pattern is easy to find so that is also taken into account.
 
 ```{r fig.cap='Distribution of beneficiaries by gender', fig.subcap=c('Sum of subsidies won in billion HUF', 'Proportion of the groups'), fig.ncol = 2, out.width = "50%", fig.align = "center"}
 by_gender <- agrar_full %>%
@@ -369,7 +370,7 @@ ggplot(data = avg_win_by_gender, aes(x = year, y = avg_win/1000000, group = gend
   labs(x = "", y="Average win (mm HUF)") +
   theme_minimal() +
   theme(legend.position = "right", legend.title = element_blank(),  legend.direction='vertical') +
-  guides(fill = guide_legend(reverse=TRUE))
+  scale_fill_viridis(discrete=TRUE, direction=1, option = "D", guide = guide_legend(reverse = TRUE))
 ggsave(paste0(data_out, "2d_avg_win_by_gender.png"))
 ggsave(paste0(data_out, "2d_avg_win_by_gender.pdf"))
 rm(avg_win_by_gender)
@@ -385,7 +386,7 @@ The address fields are missing for almost 300 data points totaling almost 9.6 bi
 
 ### Geocoding
 
-To be able to aggregate agricultural subsidies on the beneficiary level it was important to have a geographical information that can be used as a key along with the name. After several iterations of address cleaning efforts I came up with the idea to use some geocoding API to convert all addresses to a standardized format. Unfortunately, I did not find an accurate, free service so I ended up using the [Google Maps Geocoding Api](https://maps.googleapis.com/maps/api/geocode/). The raw data has `r f(misc_vars[misc_vars$var_name=="raw_address_count",]$val)` unique addresses and each one of these had to be sent to the API for geocoding. I created batches of addresses to geocode and used a python script to process them. The service is free only up to a limit and geocoding all addresses would take almost a day without parallellization. I saved down the results so I wouldn't have to do this slow, somewhat manual process another time for addresses that were already geocoded successfully. The API is sensitive to permutations in the address fields so I tried to find an order that yielded the highest success rate. Unfortunately, Google Maps could not convert some addresses so in those cases I just use the original format. One extra benefit of this approach was that all addresses that could be processed now have geo-coordinates. Using the latitude and longitude information we can create a map showing in which areas those beneficiaries reside who got most of the subsidies. After geocoding the number of unique addresses decreased to `r f(misc_vars[misc_vars$var_name=="clean_address_count",]$val)` by `r f((misc_vars[misc_vars$var_name=="raw_address_count",]$val)-(misc_vars[misc_vars$var_name=="clean_address_count",]$val))` so aggregating will be much more accurate.
+To be able to aggregate agricultural subsidies on the beneficiary level it was important to have a geographical information that can be used as a key along with the name. After several iterations of unsuccessful address cleaning efforts I came up with the idea to use some geocoding API to convert all addresses to a standardized format. Unfortunately, I did not find an accurate, free service so I ended up using the [Google Maps Geocoding API](https://maps.googleapis.com/maps/api/geocode/). The raw data has `r f(misc_vars[misc_vars$var_name=="raw_address_count",]$val)` unique addresses and each one of these had to be sent to the API for geocoding. I used a python script to create batches of addresses to geocode and process them. The service is free only up to a limit and geocoding all addresses would take almost a day without parallellization. I saved down the results so I wouldn't have to do this slow, somewhat manual process another time for addresses that were already geocoded successfully. The API is sensitive to permutations in the address fields so I tried to find an order that yielded the highest success rate. Unfortunately, Google Maps could not convert some addresses so in those cases I just use the original format. One extra benefit of this approach was that all addresses that could be processed now have geo-coordinates. Using the latitude and longitude information we can create a map showing in which areas those beneficiaries reside who got most of the subsidies. After geocoding the number of unique addresses decreased to `r f(misc_vars[misc_vars$var_name=="clean_address_count",]$val)` by `r f((misc_vars[misc_vars$var_name=="raw_address_count",]$val)-(misc_vars[misc_vars$var_name=="clean_address_count",]$val))` so aggregating will be much more accurate.
 
 ### Geographical Information and Statistics
 
@@ -397,7 +398,7 @@ The Central Statistics Agency (Központi Statisztikai Hivatal - KSH) has a websi
 
 The full loaded and enhanced dataset is quite large:
 
-```{r, engine = 'bash', eval = TRUE}
+```{r engine = 'bash', eval = TRUE}
 ls -lh ../output/agrar_full.csv | awk '{print $5,$9}'
 ```
 
@@ -418,9 +419,11 @@ dm_render_graph(graph)
 
 The normalized dataset is split across multiple files but takes around half of the disk space as a single flat file.
 
-```{r, engine = 'bash', eval = TRUE}
+```{r engine = 'bash', eval = TRUE}
 ls -lh ../output/agrar_* | grep '.*[^full].csv' | awk '{print $5,$9}'
 ```
+
+`r pagebreak()`
 
 # Data Exploration
 
@@ -492,7 +495,7 @@ data_summary <- function(x) {
 }
 ```
 
-The below table shows some descriptive statistics about the whole dataset. The range and standard deviation of subsidies are very large. The mean is more than 7 times as large as the median, which indicates that the distribution is skewed.
+The below table shows some descriptive statistics about the whole dataset. The range and standard deviation of subsidies are very large. The mean is more than 7 times as large as the median, which indicates that the distribution is skewed. The data contains `r f(misc_vars[misc_vars$var_name=="one_thousand_amounts",]$val)` records where the amount is smaller than 1000 HUF and `r f(misc_vars[misc_vars$var_name=="ten_thousand_amounts",]$val)` entries where it is smaller than 10 000. The fact that these exist is a good indication of the inefficiency of government redistribution in general and the EU in particular. I would argue that amounts smaller than 10-20 000 HUF should be eliminated completely because the administrative overhead costs much more than any value these could create.
 
 ```{r}
 ##########################
@@ -505,7 +508,7 @@ print(descr_amount)
 rm(amount)
 ```
 
-If divide the data to 10 bins (decils) and visualize the average and overall amount of money that goes into these bins we can get a sense of how skewed the distribution is.
+If divide the data to 10 bins (decils) and visualize the average and overall amount of money that goes into these bins we can get a sense of how skewed the distribution is. I also created a [shiny app](https://gr3g.shinyapps.io/subsidy_ntiles/) that allowed the client to play around with this 3D-view of the distribution.
 
 ```{r fig.cap='Average and sum subsidy by decils', fig.show = "hold", out.width = "50%", echo=FALSE, results='hide', fig.height=6}
 save_3d_chart(full_by_year, 10, "avg", "all_yearly")
@@ -611,7 +614,6 @@ rm(sum_by_address_decils)
 rm(sum_by_address)
 ```
 
-
 ### Individuals
 
 The distribution is similar if we look at the subsidies won by individuals sharing the same address. In 2010 more than 163 000 households received agricultural subsidies while in 2019 it was slightly more than 154 000. Both the mean and median more than doubled during this time interval but the standard deviation also increased 2-fold. _It is notable that there is a household that received more than 525 million HUF in agricultural subsidies in 2019._
@@ -647,7 +649,7 @@ summary(sum_by_address_indiv_stat_table,
         digits=0, digits.p=0, digits.pct=0,digits.n=NA)
 ```
 
-Both the average amount won by beneficiary and the total amount won surpasses the bottom 90%.
+Both the average amount won by beneficiary and the total amount won surpasses the bottom 90% multiple times.
 
 ```{r fig.cap='Average and sum of subsidies won by individuals', fig.show = "hold", out.width = "50%", echo=FALSE, results='hide', fig.height=6}
 save_3d_chart(sum_by_address_indiv, 10, "avg", "summed-by-address-indiv")
@@ -748,7 +750,6 @@ rm(full_stat_table)
 rm(by_address_stat_table)
 ```
 
-
 ## Land-based Distribution
 
 About 50% of the subsidies are given to farmers just for their land ownership.
@@ -803,7 +804,7 @@ ggplot(data = aggregate(amount ~ year*reason,full_by_year_by_type,"sum"), aes(x 
 ggsave(paste0(data_out, "2d_land_based_trends_stacked.png"))
 ```
 
-# Settlement Type Analysis
+## Settlement Type Analysis
 
 The amount of money won by beneficiaries who reside in various settlement types. _It is important to note that the address is the official address of the firm or individual who received the money, not the address of the land, for which the money was given._ Most of the actual land belongs to villages and small towns but the proporion of the subsidies received by entities who are based in the country capital or county capitals is quite significant.
 
@@ -857,9 +858,11 @@ ggsave(paste0(data_out, "scatter_firm_fraction_cities.png"))
 ggsave(paste0(data_out, "scatter_firm_fraction_cities.pdf"))
 ```
 
+`r pagebreak()`
+
 # Big Winners and Losers
 
-The agricultural subsidies data is publicly available. All data cleaning, transformations were also done using public datasources. The largest winners are not easy to find on the original website because searching for aggregates is not possible.
+Even though the agricultural subsidies data is publicly available the largest winners are not easy to find on the original website because searching for aggregates is not possible. The code I wrote resolves this problem. All data cleaning, transformations were done using public datasources so these findings could be extracted by anyone with enough skill and time.
 
 ## Individuals
 
@@ -874,9 +877,6 @@ hun_map <- get_map(location = 'Hungary', zoom = 7, maptype = "roadmap", color = 
 # library(ggmap)
 # egy.map <- get_map(location=c(lon=30, lat=26), zoom=6, maptype="terrain", filename="~/Desktop/ggmapTemp")
 # save(egy.map, file="~/Desktop/egy-map.rda")
-
-# Restart R or RStudio before running the code below
-# library(ggmap)
 # load("~/Desktop/egy-map.rda")
 # ls()
 # ggmap(egy.map)
@@ -890,18 +890,20 @@ kable(misc_ppl_wins_max %>%
   mutate(total=f(total)) %>%
   select(name,settlement,zip,total,num_wins=cnt),
   caption = "Individual winners with more than 1 bn HUF") %>%
-  kable_styling(bootstrap_options = c("striped", "condensed"))
+  kable_styling(bootstrap_options = c("striped", "condensed", "HOLD_position"),
+                font_size = 7)
 ```
 
 Below are the top items form the list created by aggregating wins by addresses. It is interesting to note that this list is also lead by an individual.
 
 ```{r results='asis'}
 kable(misc_ppl_wins_max_by_address %>%
-    select(address,settlement,zip,total,winners=ppl) %>%
-    top_n(8, total) %>%
+    select(settlement,zip,total,winners=ppl) %>%
+    top_n(5, total) %>%
     mutate(total=f(total)),
-  caption = "Top 8 addresses by aggregate wins") %>%
-  kable_styling(bootstrap_options = c("striped", "condensed"))
+  caption = "Top 5 addresses by aggregate wins") %>%
+  kable_styling(bootstrap_options = c("striped", "condensed", "HOLD_position"),
+                font_size = 7)
 ```
 
 We can also put them on the map of Hungary.
@@ -931,8 +933,6 @@ rm(misc_ppl_wins_max)
 rm(misc_ppl_wins_max_by_address)
 ```
 
-`r pagebreak()`
-
 ## Institutions
 
 ```{r include=FALSE, echo = FALSE, message = FALSE, warning = FALSE}
@@ -946,10 +946,11 @@ Below are the largest institutional beneficiaries since 2010.
 ```{r results='asis'}
 kable(misc_firm_wins_max %>%
       select(name,settlement,zip,total,num_wins=cnt) %>%
-      top_n(8, total) %>%
+      top_n(5, total) %>%
       mutate(name=str_trunc(name,30),total=f(total)),
-  caption = "Top 8 institutions by total subsidies") %>%
-  kable_styling(bootstrap_options = c("striped", "condensed"))
+  caption = "Top 5 institutions by total subsidies") %>%
+  kable_styling(bootstrap_options = c("striped", "condensed", "HOLD_position"),
+                font_size = 8)
 ```
 
 Some firms also share addresses with each other. Below are the addresses where the largest aggregate winners are located.
@@ -957,10 +958,11 @@ Some firms also share addresses with each other. Below are the addresses where t
 ```{r results='asis'}
 kable(misc_firm_wins_max_by_address %>%
     select(address,settlement,zip,total,winners=firms) %>%
-    top_n(8, total) %>%
+    top_n(5, total) %>%
     mutate(total=f(total)),
-  caption = "Top 10 addresses by aggregate institutional wins") %>%
-  kable_styling(bootstrap_options = c("striped", "condensed"))
+  caption = "Top 5 addresses by aggregate institutional wins") %>%
+  kable_styling(bootstrap_options = c("striped", "condensed", "HOLD_position"),
+                font_size = 8)
 ```
 
 We can see where they are located on the map of Hungary. For individual winners Budapest was barely visible on the map but for institutions the capital is clearly a center. These institutions may perform valid agricultural activity in the country but if their headquarters are in Budapest all subsidies they receive will appear in the capital in this dataset. More detailed analysis of the firm structures would help identify valid actors and freudulent players but that analysis is outside the scope of this project.
@@ -1001,16 +1003,12 @@ rm(misc_firm_wins_max_by_address)
 Having a clean, tidy dataset allows running queries that would otherwise be impossible. One example query is below: what are the addresses that have the highest number of individuals who share the same address.
 
 ```{r engine="bash",eval=FALSE, echo=TRUE}
-() xkey
-  (select from
-    # aggregate subsidies by address and keep only those where the person count is > 5
+() xkey (select from
     (`cnt xdesc select name, cnt: count i,sum amount by settlement,address,zip from
-      # aggregate wins by individuals and addresses
       (select sum amount by name,settlement,address,zip from
-        # filter for individuals
         (select from .data.full where not is_firm)
       where address<>`)
-    where cnt>5);
+  where cnt>5);
 ```
 
 The below addresses would be worth checking for an investigative journalist. 
@@ -1023,10 +1021,11 @@ misc_single_household <- readr::read_csv(paste0(data_in, "misc_single_household.
 ```{r results='asis'}
 kable(misc_single_household %>%
     select(settlement,address,zip,residents=cnt,amount) %>%
-    top_n(10, residents) %>%
+    top_n(5, residents) %>%
     mutate(amount=f(amount)),
-  caption = "Top 10 institutions by total subsidies") %>%
-  kable_styling(bootstrap_options = c("striped", "condensed"))
+  caption = "Top 5 addresses with the most distinct individual winners") %>%
+  kable_styling(bootstrap_options = c("striped", "condensed", "HOLD_position"),
+                font_size = 8)
 ```
 
 ```{r include=FALSE, echo = FALSE, message = FALSE, warning = FALSE}
@@ -1041,7 +1040,6 @@ misc_yearly_win_by_settlement <- readr::read_csv(paste0(data_in, "misc_yearly_wi
 misc_yearly_win_by_settlement$year <- as.factor(misc_yearly_win_by_settlement$year)
 misc_yearly_win_by_settlement$ksh_id <- as.factor(misc_yearly_win_by_settlement$ksh_id)
 misc_yearly_win_by_settlement$land_based <- as.factor(misc_yearly_win_by_settlement$land_based)
-misc_yearly_win_by_settlement$is_firm <- as.factor(misc_yearly_win_by_settlement$is_firm)
 
 county_data_land_based <- misc_yearly_win_by_settlement %>%
   filter(land_based==1) %>%
@@ -1071,18 +1069,532 @@ ggmap(hun_map) +
   guides(color = guide_legend(override.aes = list(size = 8))) +
   scale_colour_gradient(low = "orange", high = "purple")
 ggsave(paste0(data_out, "map_land_based_average.png"))
-ggsave(paste0(data_out, "map_institutional_winners.pdf"))
+ggsave(paste0(data_out, "map_land_based_average.pdf"))
 ```
 
 ## Yearly Changes
 
-# Effect of elections
-```{r}
-# misc_diffs_for_elections
+One request from the client was to be able to view the largest winners and losers in a given area for each year by comparing yearly agricultural subsidies. The below function allows just that. You have to provide some constraint (eg.: filter for some area or subsidy type), the minimum yearly differenc and the number of largest records you want to see.
+
+```{r engine="bash",eval=FALSE, echo=TRUE}
+# .agrar.yearly_diffs[tbl:.data.full;constraint:(`land_based;(=;`zip;8086));limit:1000000;records:1]
+.agrar.yearly_diffs:{[tbl;constraint;limit;records]
+  yearly_amounts: ?[tbl;constraint;
+    (`name`addr`year`zip`settlement)!(`name;(^;`address;`formatted_address);
+    `year;`zip;`settlement);(enlist `amount)!enlist(sum;`amount)];
+  winners: select distinct name,addr,zip,settlement from yearly_amounts;
+  zeros: winners cross update amount:0 from select distinct year from yearly_amounts;
+  diffs: update diff: deltas amount by addr,zip,settlement from
+    select names: distinct name,sum amount by addr,zip,settlement,year from zeros, () xkey yearly_amounts;
+  diffs: delete from diffs where year = `$ string min "I"$ string exec distinct year from diffs;
+  diffs: select from diffs where limit<abs diff;
+  ret: () xkey (select from (`diff xdesc diffs) where ({[r;x]x in r#x}[records;];i) fby ([]zip;year)),
+                select from (`diff xasc diffs)  where ({[r;x]x in r#x}[records;];i) fby ([]zip;year);
+  xcols[`addr`zip`settlement`year`amount`diff;ret]
+  };
 ```
-Is there a relationship between the amount of money given to a region and the political affiliation of the municipality/county?
 
-Election data: https://drive.google.com/file/d/1E8oMR97J-_H9vnymzEdF29GN0o6LlkqN/
+`r pagebreak()`
+
+# Subsidy Dependence
+
+Together with the client we talked to industry participants who highlighted some nuances that we wouldn't have otherwise been able to find out. The current system of subsidies is wrong for many reasons:
+
+- it weakens market forces that would empower agricultural participants of the EU to compete globally
+- Land-based sibsidies often land in the pockets of investors who do not have anything to do with agriculture, not the people who work the land
+- Around 50% of the sibsidies are distributed following a selection processes where the subjective component is significant. This makes freud and corruption part of the system
+
+Agricultural subsidies should at most be a supplement to the income of market participants, not the majority of it. For individuals it would be impossible for a non-state actor to analyze the financials because of the lack of financial data. For firms commercial datasources exist so the most important balance sheet components can be used to find what firms depend too much on subsidies and we can build models to categorize these. I got hold of some high-level financials of firms for 2018 and I could join these with the agricultural subsidy dataset. This allows the cration of statistical models to find non-trivial connections between the variables.
+
+## Model preparation
+
+```{r include=FALSE, echo = FALSE, message = FALSE, warning = FALSE}
+agrar_2018 <-  agrar_full %>%
+  filter(year==2018) %>%
+  mutate(ksh_id = as.factor(ksh_id))
+
+sum_by_ksh_id <- agrar_2018 %>%
+  select(ksh_id,amount) %>%
+  group_by(ksh_id) %>%
+  summarise(amount=sum(amount))  %>%
+  inner_join(settlement_stats, by = "ksh_id") %>%
+  select(-county,
+         -settlement, -latitude,
+         -longitude) %>%
+  mutate(amt_by_area=amount/area,
+         amt_by_pop=amount/population,
+         amt_by_homes=amount/homes,
+         ksh_id=as.factor(ksh_id),
+         district=as.factor(district))
+
+firms_2018 <- readr::read_csv(paste0(data_in, "firms_2018_modeling.csv")) %>%
+  select(-name,-zip,-settlement,-address) %>%
+  mutate(
+    state_and_local_gov_owned=as.factor(so3_with_mo3),
+    state_owned=as.factor(so3),
+    foreign_owned=as.factor(fo3),
+    domestic_owned=as.factor(do3),
+    local_gov_owned=as.factor(mo3),
+    subsidy_to_sales=(a_total+1)/(sales+1),
+    ksh_id=as.factor(ksh_id)) %>%
+  select(-so3_with_mo3,-so3,-do3,-mo3,-fo3) %>%
+  mutate(subsidy_dependent=cut(subsidy_to_sales, breaks=c(-Inf, 0.5, Inf), labels=c("no","yes")),
+         log_sales = log10(sales+1),
+         log_tax = log10(tax+1),
+         log_sales_per_emp = log10(sales_per_emp+1),
+         log_subsidy_per_sales = log10(a_total/sales))
+
+joined <- firms_2018 %>% left_join(sum_by_ksh_id, by = "ksh_id") %>%
+  select(-amount,-district,-sales,-persexp,-ksh_id)
+
+model_raw <- drop_na(joined)
+```
+
+I defined two variables to measure how dependent a firm is on agricultural subsidies: a continuous and a categorical. The continuous variable is called `log_subsidy_per_sales`, which is the ratio of agricultural subsidies won by the firm compared to its total sales. I use a logarithmic transformation because the simple fraction is very skewed. The log values follow a normal distribution.
+
+```{r fig.cap='Density of subsidy_per_sales', fig.height=4}
+ggplot(data = model_raw, aes(x = log_subsidy_per_sales)) +
+  geom_density() +
+  labs(y="") +
+  theme_minimal() +
+  theme(legend.position = "none") +
+  scale_fill_viridis(discrete=TRUE, direction=1, option = "D")
+ggsave(paste0(data_out, "model_density_log_subsidy_per_sales.png"))
+ggsave(paste0(data_out, "model_density_log_subsidy_per_sales.pdf"))
+```
+
+There are dozens of descriptive variables that can be used for predicting the target variables but some of them cannot be used because they have a well-defined relationship with the target variable.
+
+```{r message=FALSE, warning=FALSE, include=FALSE}
+# variables <- model_raw %>% select(-log_subsidy_per_sales,-subsidy_dependent,-subsidy_to_sales)
+#skim_without_charts(variables)
+```
+
+```{r message=FALSE, warning=FALSE, include=FALSE}
+model_1 <- c("settlement_type")
+model_2 <- c(model_1, "log_tax", "log_sales_per_emp", "pretax_per_sales", "amt_by_homes", "emp", "avg_salary")
+model_3 <- c(model_2, "a_eu_land_based_fraction", "a_eu_not_land_based_fraction", "a_national_fraction")
+model_4 <- c(model_3, "state_and_local_gov_owned", "state_owned", "foreign_owned", "domestic_owned", "local_gov_owned")
+model_5 <- c(model_4, "amt_by_area", "amt_by_pop", "population", "area", "homes")
+
+models <- list(
+  "model_1" = model_1,
+  "model_2" = model_2,
+  "model_3" = model_3,
+  "model_4" = model_4,
+  "model_5" = model_5
+)
+```
+
+## Linear Models
+
+```{r message=FALSE, warning=FALSE, include=FALSE}
+# Create a training and a test set, assigning 20% of observations to the training set.
+training_ratio <- 0.20
+set.seed(random_seed)
+data_model <- model_raw %>% select("log_subsidy_per_sales", model_5)
+train_indices <- createDataPartition(y = data_model[["log_subsidy_per_sales"]],
+                                     times = 1,
+                                     p = training_ratio,
+                                     list = FALSE)
+data_train <- data_model[train_indices, ]
+data_test <- data_model[-train_indices, ]
+```
 
 
+```{r message=FALSE, warning=FALSE, include=FALSE}
+# Use a linear regression to predict logTotalValue and use 10-fold cross validation to assess the predictive power.
+fit_control <- trainControl(method = "cv", number = 10)
 
+set.seed(random_seed)
+linear_fit <- train(
+  log_subsidy_per_sales ~ .,
+  data = data_train,
+  method = "lm",
+  preProcess = c("center", "scale"),
+  trControl = fit_control
+)
+```
+
+I created 4 models to estimate the dependence of a firm on subsidies: simple linear fit, Ridge, LASSO and Elastic Net. I use 10-fold cross validation in all of them. I use `caret` to estimate the models; this lets me compare them to each other using the same hyperparameters and folds. The RMSE of the linear model when looking at the holdout dataset is `r RMSE(predict(linear_fit, newdata = data_test), data_test[["log_subsidy_per_sales"]])`.
+
+For the Ridge model the weights of descriptor variables tend to 0 as we increase lambda, the penalty term.
+
+```{r fig.cap="Variables fade to 0 as the penalty term increases"}
+# glmnet needs inputs as a matrix. model.matrix: handles factor variables
+# -1: we do not need the intercept as glment will automatically include it
+x_train <- model.matrix( ~ . -1, data_train[, , with = FALSE])
+
+# standardization of variables is automatically done by glmnet
+# how much penalty do we want to apply? select with CV
+lambda_grid <- 10^seq(2,-5,length=100)  
+
+set.seed(random_seed)
+ridge_model <- glmnet(
+  x = x_train, y = data_train[["log_subsidy_per_sales"]], 
+  family = "gaussian", # for continuous response
+  alpha = 0  # for the ridge model
+)
+
+plot(ridge_model, xvar = "lambda")
+```
+
+```{r message=FALSE, warning=FALSE, include=FALSE}
+
+ridge_tune_grid <- expand.grid(
+  "alpha" = c(0),
+  "lambda" = seq(0.01, 0.3, by = 0.005)
+)
+
+set.seed(random_seed)
+ridge_fit <- train(
+  log_subsidy_per_sales ~ .,
+  data = data_train,
+  method = "glmnet",
+  preProcess = c("center", "scale"),
+  tuneGrid = ridge_tune_grid,
+  trControl = fit_control
+)
+```
+
+In penalized regression models Ridge shows a steady decrease in the RMSE as we increase the penalty term until we reach the optimum at `r ridge_fit$bestTune$lambda`.
+
+```{r fig.cap='Ridge weight decay'}
+ggplot(ridge_fit) +
+  theme_minimal() +
+  scale_fill_viridis(discrete=TRUE, direction=1, option = "D")
+ggsave(paste0(data_out, "ridge_weight_decay.png"))
+ggsave(paste0(data_out, "ridge_weight_decay.pdf"))
+```
+
+The RMSE of the ridge model when looking at the holdout dataset is `r RMSE(predict(ridge_fit, newdata = data_test), data_test[["log_subsidy_per_sales"]])`.
+
+```{r message=FALSE, warning=FALSE, include=FALSE}
+tenpowers <- 10^seq(-0.5, -6, by = -0.5)
+
+lasso_tune_grid <- expand.grid(
+  "alpha" = c(1),
+  "lambda" = c(tenpowers, tenpowers / 2) 
+)
+
+set.seed(random_seed)
+lasso_fit <- train(
+  log_subsidy_per_sales ~ .,
+  data = data_train,
+  method = "glmnet",
+  preProcess = c("center", "scale"),
+  tuneGrid = lasso_tune_grid,
+  trControl = fit_control
+)
+```
+
+```{r message=FALSE, warning=FALSE, include=FALSE}
+lasso_fit
+```
+
+LASSO's RMSE looks different depending on the penalty term. The lowest RMSE is reached at `r lasso_fit$bestTune$lambda`.
+
+```{r fig.cap='RMSE vs lambda for LASSO'}
+ggplot(lasso_fit) + scale_x_log10() +
+  theme_minimal() +
+  scale_fill_viridis(discrete=TRUE, direction=1, option = "D")
+ggsave(paste0(data_out, "lasso_rmse.png"))
+ggsave(paste0(data_out, "lasso_rmse.pdf"))
+```
+
+The RMSE of the ridge model when looking at the holdout dataset is `r RMSE(predict(lasso_fit, newdata = data_test), data_test[["log_subsidy_per_sales"]])`.
+
+```{r message=FALSE, warning=FALSE, include=FALSE}
+enet_tune_grid <- expand.grid(
+  "alpha" = seq(0, 1, by = 0.1),
+  "lambda" = union(lasso_tune_grid[["lambda"]], ridge_tune_grid[["lambda"]])
+)
+
+set.seed(random_seed)
+enet_fit <- train(
+  log_subsidy_per_sales ~ .,
+  data = data_train,
+  method = "glmnet",
+  preProcess = c("center", "scale"),
+  tuneGrid = enet_tune_grid,
+  trControl = fit_control
+)
+```
+
+```{r message=FALSE, warning=FALSE, include=FALSE}
+enet_fit
+```
+
+Elastic net combines Ridge and LASSO. We can see how the model performs for different alpha and lambda parameters. The best fit has an alpha of `r enet_fit$bestTune$alpha` and a lambda of `r enet_fit$bestTune$lambda`.
+
+```{r fig.cap='Elastic Net model performance for different lambda and alpha parameters'}
+ggplot(enet_fit) +
+  scale_x_log10() +
+  theme_minimal() +
+  scale_fill_viridis(discrete=TRUE, direction=1, option = "D")
+```
+
+Simple linear regression has the highest error but the penalizing models have similar performance characteristics.  All linear models with penalization perform slightly better than the linear model, elastic net being the best; it has an RMSE on the holdout set of `r RMSE(predict(enet_fit, newdata = data_test), data_test[["log_subsidy_per_sales"]])`.
+
+```{r message=FALSE, warning=FALSE, include=FALSE}
+resample_profile <- resamples(
+  list("linear" = linear_fit,
+       "ridge" = ridge_fit,
+       "lasso" = lasso_fit,
+       "elastic net" = enet_fit
+  )
+) 
+
+summary(resample_profile)
+```
+
+```{r fig.cap='Linear regression model performance summary'}
+bwplot(resample_profile)
+ggsave(paste0(data_out, "linear_model_performance.png"))
+ggsave(paste0(data_out, "linear_model_performance.pdf"))
+```
+
+```{r message=FALSE, warning=FALSE, include=FALSE}
+model_differences <- diff(resample_profile)
+```
+
+```{r message=FALSE, warning=FALSE, include=FALSE}
+summary(model_differences)
+```
+
+```{r message=FALSE, warning=FALSE, include=FALSE}
+dotplot(model_differences)
+```
+
+We can use these penalized models to get those descriptive variables that can account for the largest chunk of variation in the target variable.
+
+```{r}
+enet_coeffs <- coef(
+    enet_fit$finalModel, 
+    enet_fit$bestTune$lambda) %>%
+  as.matrix() %>% 
+  as.data.frame() %>% 
+  rownames_to_column(var = "variable") %>% 
+  rename(coefficient = `1`)
+enet_coeffs
+```
+
+The models do not have strong descriptive power and their external validity is also weak. The model does not say anything about individuals but it would be quite interesting to see how dependent they are on subsidies. Even from the firm data a lot of data points were dropped either because they could not be matched with the financial results dataset or because of some missing values among their finances. I could use around 50% of the data points. Another factor that is not taken into account is that the analysis was done on 2018 data. Changes in political affiliation of an area and changes in regulations can change how firms treat agricultural subsidies.
+
+## Classification
+
+We can also create a boolean variable from the "subsidy to sales" ratio by defining a threshold. It seems reasonable to say that if the total subsidies won by a firm are at least 50% of its sales then it is dependent on this source of revenue; I call this new variable `subsidy_dependent`.
+
+```{r}
+summary(model_raw$subsidy_dependent)
+```
+
+```{r message=FALSE, warning=FALSE, include=FALSE}
+# Create a training and a test set, assigning 20% of observations to the training set.
+set.seed(random_seed)
+cl_train_control <- trainControl(method = "cv",
+                                 number = 5,
+                                 verboseIter = TRUE,
+                                 classProbs = TRUE, 
+                                 summaryFunction = twoClassSummary  # necessary so we can use AUC
+                                 )
+
+cl_data_model <- model_raw %>% select("subsidy_dependent", model_5)
+cl_train_indices <- createDataPartition(y = cl_data_model[["subsidy_dependent"]],
+                                     times = 1,
+                                     p = training_ratio,
+                                     list = FALSE)
+cl_data_train <- cl_data_model[cl_train_indices, ]
+cl_data_holdout <- cl_data_model[-cl_train_indices, ]
+```
+
+For the classifier model I use 5 variations of logit trained on different sets of the available variables. I also trained a CART and a random forest model.
+
+```{r message=FALSE, warning=FALSE, include=FALSE}
+logit_models <- map(models, ~ {
+  feature_vars <- .x
+  
+  set.seed(random_seed)
+  train(
+    formula(paste0("subsidy_dependent ~ ", paste0(feature_vars, collapse = " + "))),
+    method = "glm",
+    data = cl_data_train,
+    trControl = cl_train_control
+  )  
+})
+```
+
+```{r message=FALSE, warning=FALSE, include=FALSE}
+best_logit <- logit_models[["model_5"]]
+auc_cv <- best_logit[["results"]][["ROC"]]
+summary(resamples(logit_models))
+```
+
+```{r message=FALSE, warning=FALSE, include=FALSE}
+# only as a check: training set (in-sample) AUC
+predicted_subsidy_dependent_probability_train <- predict(
+  best_logit, newdata = cl_data_train, type = "prob"
+)[["yes"]]
+prediction_train <- prediction(predicted_subsidy_dependent_probability_train, cl_data_train[["subsidy_dependent"]])
+auc_train <- performance(prediction_train, measure = "auc")@y.values[[1]]
+
+# evaluate best model on holdout set
+predicted_subsidy_dependent_probability_holdout <- predict(
+  best_logit, newdata = cl_data_holdout, type = "prob"
+)[["yes"]]
+prediction_holdout <- prediction(predicted_subsidy_dependent_probability_holdout, cl_data_holdout[["subsidy_dependent"]])
+auc_holdout <- performance(prediction_holdout, measure = "auc")@y.values[[1]]
+```
+
+The best performing logit model is the one where all of the available variables are used. The AUC value on the train set is `r auc_train`. On the holdout set it is `r auc_holdout`. 
+
+```{r message=FALSE, warning=FALSE, include=FALSE}
+actual_vs_predicted_logit <- data.frame(
+  actual = ifelse(cl_data_holdout[["subsidy_dependent"]] == "yes", 1, 0),
+  predicted = predicted_subsidy_dependent_probability_holdout
+)
+
+# order observations according to predicted score from lowest to highest and group them into
+# roughly equally-sized bins
+num_groups <- 10
+
+# ntile: assign group ids based on a variable. similar to "cut".
+# order them based on predicted probability and split it into 10 groups
+# used below
+actual_vs_predicted_logit %>% 
+  mutate(predicted_score_group = ntile(predicted, num_groups)) %>% 
+  head(20)
+
+calibration_logit <- actual_vs_predicted_logit %>% 
+  mutate(predicted_score_group = ntile(predicted, num_groups)) %>% 
+  group_by(predicted_score_group) %>% 
+  summarise(mean_actual = mean(actual), mean_predicted = mean(predicted), num_obs = n())
+
+ggplot(calibration_logit,aes(x = mean_actual, y = mean_predicted)) +
+  geom_point() +
+  geom_abline(intercept = 0, slope = 1, linetype = "dashed") +
+  labs(x = "Actual event probability", y = "Predicted event probability") +
+  ylim(0, 0.1) + xlim(0, 0.1) +
+  theme_minimal()
+
+brier <- RMSE(actual_vs_predicted_logit[["predicted"]], actual_vs_predicted_logit[["actual"]])^2
+```
+
+
+```{r message=FALSE, warning=FALSE, include=FALSE}
+set.seed(random_seed)
+
+tune_grid <- expand.grid(
+  .mtry = 4:10,
+  .splitrule = "variance",
+  .min.node.size = c(5, 10)
+)
+# tune_grid
+
+cart_model <- train(
+  formula(paste0("subsidy_dependent ~", paste0(model_5, collapse = " + "))),
+  data = cl_data_train,
+  method = "rpart",
+  tuneLength = 20,
+  trControl = cl_train_control
+)
+```
+```{r message=FALSE, warning=FALSE, include=FALSE}
+cart_model
+```
+
+```{r message=FALSE, warning=FALSE, include=FALSE}
+# AUC on holdout set
+predicted_subsidy_dependent_probability_holdout_cart <- predict(
+  cart_model, newdata = cl_data_holdout, type = "prob"
+)[["yes"]]
+
+prediction_holdout_cart <- prediction(predicted_subsidy_dependent_probability_holdout_cart, cl_data_holdout[["subsidy_dependent"]])
+auc_holdout_cart <- performance(prediction_holdout_cart, measure = "auc")@y.values[[1]]
+```
+
+The next classifier I built was CART, a simple tree-based approach. It is great because of its interpretability. At each split the algorithm maximizes the reduction in the error metric of the classification. The AUC value on the holdout set is `r auc_holdout_cart`. Each decision can be later examined and the most important variables collected.
+
+```{r fig.cap='Decision tree for classifying subsidy-dependent firms', fig.height=5}
+fancyRpartPlot(cart_model$finalModel, sub = "")
+```
+
+
+```{r message=FALSE, warning=FALSE, include=FALSE}
+rf_tune_grid <- expand.grid(
+  .mtry = c(3, 4, 5, 6, 7),
+  .splitrule = "gini",
+  .min.node.size = c(5, 10)
+)
+
+set.seed(random_seed)
+rf_model <- train(
+  formula(paste0("subsidy_dependent ~ ", paste0(model_5, collapse = " + "))),
+  method = "ranger",
+  data = cl_data_train,
+  tuneGrid = rf_tune_grid,
+  trControl = cl_train_control,
+  importance = "impurity"
+)
+```
+
+```{r message=FALSE, warning=FALSE, include=FALSE}
+# AUC on holdout set
+predicted_subsidy_dependent_probability_holdout_rf <- predict(
+  rf_model, newdata = cl_data_holdout, type = "prob"
+)[["yes"]]
+
+prediction_holdout_rf <- prediction(predicted_subsidy_dependent_probability_holdout_rf, cl_data_holdout[["subsidy_dependent"]])
+auc_holdout_rf <- performance(prediction_holdout_rf, measure = "auc")@y.values[[1]]
+```
+
+Random forest is a more robust, tree-based ensamble algorithm. It creates a large number of simpler trees using a number of of tricks, including bagging and using only a subset of the descriptive variables in each tree. Interpretability is more limited but the overall performance is typically better than that of CART. In our case the AUC is `r auc_holdout_rf`. We could inspect each tree but it would not give too much information because the strength of the model is in the numbers. However, we can aggregate the improvements in the classification for each variable in each tree to get the order of the most important variables. The top items in the list are usually the ones that appear in the CART model as well.
+
+```{r fig.cap='Variable Importance plot for Random Forest classifier'}
+plot(varImp(rf_model))
+ggsave(paste0(data_out, "rf_var_importance.png"))
+ggsave(paste0(data_out, "rf_var_importance.pdf"))
+```
+
+```{r}
+resamples(list(
+  "best_logit" = logit_models[["model_5"]],
+  "cart" = cart_model,
+  "rf" = rf_model)
+) %>% summary()
+```
+
+We can also visualize the ROC curve for each classifier. Random forest has the best performance while CART is below both RF and the best logit model.
+
+```{r message=FALSE, warning=FALSE, include=FALSE}
+roc_df_logit_rf <- imap(list("logit" = best_logit,
+                             "random forest" = rf_model,
+                             "cart" = cart_model), ~ {
+  model <- .x
+  predicted_probabilities <- predict(model, newdata = cl_data_holdout, type = "prob")
+  rocr_prediction <- prediction(predicted_probabilities[["yes"]], cl_data_holdout[["subsidy_dependent"]]) 
+  
+  tpr_fpr_performance <- performance(rocr_prediction, "tpr", "fpr")
+  tibble(
+    model = .y,
+    FPR = tpr_fpr_performance@x.values[[1]],
+    TPR = tpr_fpr_performance@y.values[[1]],
+    cutoff = tpr_fpr_performance@alpha.values[[1]]
+  )  
+}) %>% bind_rows()
+```
+
+```{r fig.cap='ROC curve of the classifiers'}
+ggplot(roc_df_logit_rf) +
+  geom_line(aes(FPR, TPR, color = model), size = 1) +
+  geom_abline(intercept = 0, slope = 1,  linetype = "dotted", col = "black") +
+  scale_y_continuous(limits = c(0, 1), breaks = seq(0, 1, .1)) +
+  scale_x_continuous(limits = c(0, 1), breaks = seq(0, 1, .1)) +
+  xlab("False Positive Rate") + ylab("True Positive Rate") +
+  theme_minimal() +
+  scale_fill_viridis(discrete=TRUE, direction=1, option = "D")
+```
+
+# Summary
+
+Agricultural subsidies are the biggest chunk of the budget of the European Union. The system has many flaws but the stakeholders are not motivated to change the status quo. The problem domain could be better understood by analyzing the data. Targeted investigation for politically exposed people has been conducted but it is not possible to do even simple data exploration across multiple years. I took first leaps to solve this by taking the raw data for the past 10 years for Hungary from the website of the Hungarian Treasury and applying a lot of data engineering techniques. I only used free tools and made the code available on github. Even though the focus of the project was on the data engineering part I also built a few models using the cleaned agricultural subsidies and a small dataset about firm financials.

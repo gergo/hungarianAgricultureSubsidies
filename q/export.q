@@ -250,7 +250,8 @@ system "l ../q/elections.q";
   opten: .agrar.read_opten["balance_sheet_szekely_merged_fname_18.csv"];
 
   joined: delete region,teaor08_2d,teaor03_2d,originalid,year,wbill,orig_score,org_score,text_score,found_name from opten ij combined;
-  final: update sales_per_emp:sales%emp,avg_salary:persexp%emp,tax:pretax-aftertax,pretax_per_sales:pretax%sales,subsidy_oriented: (a_total>sales)&(sales>0) from joined;
+  frac:{$[(y=0)|y=0N;:0n;:x%y]};
+  final: update sales_per_emp:frac'[sales;emp],avg_salary:frac'[persexp;emp],tax:pretax-aftertax,pretax_per_sales:frac'[pretax;sales] from joined;
   .agrar.save_csv["firms_2018_modeling";final];
   };
 
